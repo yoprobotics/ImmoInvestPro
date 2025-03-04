@@ -1,95 +1,188 @@
 /**
- * Module de gestion des inscriptions utilisateurs
+ * Module d'inscription des utilisateurs
  * 
- * Ce module gère les fonctionnalités liées à l'inscription des utilisateurs:
- * - Création de nouveaux comptes
- * - Validation des informations d'inscription
- * - Génération de jetons de confirmation
- * - Gestion des erreurs d'inscription
+ * Ce module gère le processus d'inscription des utilisateurs:
+ * - Création de compte
+ * - Validation des données
+ * - Attribution du niveau d'accès initial (gratuit)
  */
 
-// Imports
-const crypto = require('crypto');
-const validator = require('validator');
+/**
+ * Structure des données utilisateur
+ * @typedef {Object} UserData
+ * @property {string} email - Email de l'utilisateur
+ * @property {string} password - Mot de passe (chiffré)
+ * @property {string} firstName - Prénom
+ * @property {string} lastName - Nom de famille
+ * @property {string} [phone] - Numéro de téléphone (optionnel)
+ */
 
 /**
- * Fonction principale d'inscription utilisateur
- * @param {Object} userData - Les données utilisateur pour l'inscription
- * @return {Promise<Object>} - Résultat de l'inscription
+ * Structure du résultat d'inscription
+ * @typedef {Object} RegistrationResult
+ * @property {boolean} success - Succès de l'inscription
+ * @property {string} message - Message descriptif
+ * @property {string} [userId] - ID de l'utilisateur créé (si succès)
+ * @property {Array<string>} [errors] - Liste des erreurs (si échec)
+ */
+
+/**
+ * Valide les données d'inscription
+ * @param {UserData} userData - Données utilisateur à valider
+ * @returns {Object} Résultat de la validation {valid: boolean, errors: Array}
+ */
+function validateUserData(userData) {
+  const errors = [];
+  
+  // Validation de l'email
+  if (!userData.email) {
+    errors.push("L'email est requis");
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userData.email)) {
+    errors.push("Format d'email invalide");
+  }
+  
+  // Validation du mot de passe
+  if (!userData.password) {
+    errors.push("Le mot de passe est requis");
+  } else if (userData.password.length < 8) {
+    errors.push("Le mot de passe doit contenir au moins 8 caractères");
+  }
+  
+  // Validation du prénom
+  if (!userData.firstName) {
+    errors.push("Le prénom est requis");
+  }
+  
+  // Validation du nom
+  if (!userData.lastName) {
+    errors.push("Le nom est requis");
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Vérifie si un email existe déjà dans la base de données
+ * @param {string} email - Email à vérifier
+ * @returns {Promise<boolean>} - true si l'email existe déjà
+ */
+async function emailExists(email) {
+  // TODO: Implémenter la vérification dans la base de données
+  // Exemple de code temporaire
+  return false;
+}
+
+/**
+ * Crée un nouvel utilisateur avec le niveau gratuit par défaut
+ * @param {UserData} userData - Données utilisateur validées
+ * @returns {Promise<Object>} - Objet utilisateur créé
+ */
+async function createUser(userData) {
+  try {
+    // TODO: Implémenter la création de l'utilisateur dans la base de données
+    // Exemple de code temporaire
+    return {
+      id: `user_${Date.now()}`,
+      email: userData.email,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      phone: userData.phone || null,
+      createdAt: new Date().toISOString(),
+      subscriptionTier: 'FREE', // Niveau gratuit par défaut
+      subscriptionExpiry: null, // Pas de date d'expiration pour le niveau gratuit
+    };
+  } catch (error) {
+    console.error("Erreur lors de la création de l'utilisateur:", error);
+    throw error;
+  }
+}
+
+/**
+ * Envoie un email de bienvenue à l'utilisateur
+ * @param {Object} user - Objet utilisateur créé
+ * @returns {Promise<void>}
+ */
+async function sendWelcomeEmail(user) {
+  try {
+    // TODO: Implémenter l'envoi d'email
+    console.log(`Email de bienvenue envoyé à ${user.email}`);
+  } catch (error) {
+    console.error("Erreur lors de l'envoi de l'email de bienvenue:", error);
+    // Ne pas bloquer le processus d'inscription si l'email échoue
+  }
+}
+
+/**
+ * Initialise les préférences par défaut de l'utilisateur
+ * @param {string} userId - ID de l'utilisateur créé
+ * @returns {Promise<void>}
+ */
+async function initializeUserPreferences(userId) {
+  try {
+    // TODO: Initialiser les préférences par défaut
+    console.log(`Préférences initialisées pour l'utilisateur ${userId}`);
+  } catch (error) {
+    console.error("Erreur lors de l'initialisation des préférences:", error);
+    // Ne pas bloquer le processus d'inscription si l'initialisation échoue
+  }
+}
+
+/**
+ * Gère le processus complet d'inscription
+ * @param {UserData} userData - Données utilisateur à inscrire
+ * @returns {Promise<RegistrationResult>} - Résultat de l'inscription
  */
 async function registerUser(userData) {
   try {
-    // Validation des entrées
-    validateUserData(userData);
+    // Validation des données
+    const validation = validateUserData(userData);
+    if (!validation.valid) {
+      return {
+        success: false,
+        message: "Validation des données échouée",
+        errors: validation.errors
+      };
+    }
     
-    // Vérifier si l'utilisateur existe déjà
-    // TODO: Implémenter la vérification
+    // Vérification de l'existence de l'email
+    const exists = await emailExists(userData.email);
+    if (exists) {
+      return {
+        success: false,
+        message: "Cet email est déjà utilisé",
+        errors: ["Email déjà utilisé"]
+      };
+    }
     
-    // Crypter le mot de passe
-    const hashedPassword = hashPassword(userData.password);
+    // Création de l'utilisateur
+    const user = await createUser(userData);
     
-    // Créer l'utilisateur dans la base de données
-    // TODO: Implémenter la création d'utilisateur
+    // Envoi de l'email de bienvenue (asynchrone)
+    sendWelcomeEmail(user).catch(err => console.error("Échec de l'envoi de l'email:", err));
     
-    // Générer un jeton de confirmation
-    const confirmationToken = generateConfirmationToken();
-    
-    // Envoyer un email de confirmation
-    // TODO: Implémenter l'envoi d'email
+    // Initialisation des préférences (asynchrone)
+    initializeUserPreferences(user.id).catch(err => console.error("Échec de l'initialisation des préférences:", err));
     
     return {
       success: true,
-      message: "Inscription réussie. Veuillez vérifier votre email pour confirmer votre compte."
+      message: "Inscription réussie",
+      userId: user.id
     };
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error);
     return {
       success: false,
-      message: error.message || "Une erreur est survenue lors de l'inscription."
+      message: "Une erreur est survenue lors de l'inscription",
+      errors: [error.message || "Erreur interne du serveur"]
     };
   }
 }
 
-/**
- * Valide les données utilisateur pour l'inscription
- * @param {Object} userData - Les données à valider
- * @throws {Error} Si les données sont invalides
- */
-function validateUserData(userData) {
-  if (!userData.email || !validator.isEmail(userData.email)) {
-    throw new Error("Adresse email invalide");
-  }
-  
-  if (!userData.password || userData.password.length < 8) {
-    throw new Error("Le mot de passe doit contenir au moins 8 caractères");
-  }
-  
-  if (userData.password !== userData.confirmPassword) {
-    throw new Error("Les mots de passe ne correspondent pas");
-  }
-  
-  // Validation supplémentaire pour les autres champs si nécessaire
-}
-
-/**
- * Hache le mot de passe pour le stockage sécurisé
- * @param {string} password - Mot de passe en clair
- * @return {string} Mot de passe haché
- */
-function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
-}
-
-/**
- * Génère un jeton de confirmation pour l'activation du compte
- * @return {string} Jeton de confirmation
- */
-function generateConfirmationToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
-
 module.exports = {
-  registerUser
+  registerUser,
+  validateUserData,
+  emailExists
 };
