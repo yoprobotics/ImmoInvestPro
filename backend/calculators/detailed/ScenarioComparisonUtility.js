@@ -1,255 +1,244 @@
 /**
- * Utilitaire de comparaison de scénarios pour projets immobiliers
- * 
- * Permet de comparer différents scénarios pour un même projet et d'identifier
- * le scénario optimal selon différents critères
+ * ScenarioComparisonUtility.js
+ * Utilitaire pour comparer différents scénarios d'investissement immobilier
  */
-
-const FlipDetailedCalculator = require('./FlipDetailedCalculator');
-const MultiDetailedCalculator = require('./MultiDetailedCalculator');
 
 class ScenarioComparisonUtility {
   /**
-   * Compare plusieurs scénarios pour un projet FLIP
-   * 
-   * @param {Array<Object>} scenarios - Tableau de scénarios à comparer
-   * @param {string} optimizationCriteria - Critère d'optimisation (profit, roi, annualizedRoi)
+   * Compare plusieurs scénarios d'investissement et identifie le meilleur selon différents critères
+   * @param {Array} scenarios Tableau d'objets représentant différents scénarios
+   * @param {Object} options Options de comparaison
    * @returns {Object} Résultats de la comparaison
    */
-  static compareFlipScenarios(scenarios, optimizationCriteria = 'profit') {
-    if (!scenarios || scenarios.length === 0) {
-      throw new Error('Au moins un scénario doit être fourni');
+  static compareScenarios(scenarios, options = {}) {
+    if (!scenarios || !Array.isArray(scenarios) || scenarios.length === 0) {
+      throw new Error('Vous devez fournir au moins un scénario à comparer');
     }
     
-    // Valider le critère d'optimisation
-    const validCriteria = ['profit', 'roi', 'annualizedRoi'];
-    if (!validCriteria.includes(optimizationCriteria)) {
-      throw new Error(`Critère d'optimisation invalide. Valeurs acceptées: ${validCriteria.join(', ')}`);
-    }
+    // Options par défaut
+    const defaultOptions = {
+      prioritizeCashflow: true, // Prioriser le cashflow vs ROI
+      weightCashflow: 0.5,      // Poids du cashflow dans l'évaluation globale
+      weightCapRate: 0.3,       // Poids du taux de capitalisation
+      weightCashOnCash: 0.2,    // Poids du rendement sur investissement
+      minViableCashflowPerUnit: 75 // Cashflow minimum par unité (multi)
+    };
     
-    // Calculer les résultats de chaque scénario
-    const results = scenarios.map((scenario, index) => {
-      const result = FlipDetailedCalculator.calculate(scenario);
+    const settings = { ...defaultOptions, ...options };
+    
+    // Analyse de chaque scénario
+    const analyzedScenarios = scenarios.map((scenario, index) => {
+      const analysis = this._analyzeScenario(scenario);
       return {
-        scenarioIndex: index,
-        scenarioName: scenario.name || `Scénario ${index + 1}`,
-        summary: result.summary
+        id: index + 1,
+        name: scenario.name || `Scénario ${index + 1}`,
+        scenario: scenario,
+        analysis: analysis,
+        score: this._calculateScore(analysis, settings)
       };
     });
     
-    // Trouver le scénario optimal selon le critère choisi
-    const optimalScenario = results.reduce((best, current) => {
-      return current.summary[optimizationCriteria] > best.summary[optimizationCriteria] ? current : best;
-    }, results[0]);
+    // Trier les scénarios par score (du plus élevé au plus bas)
+    analyzedScenarios.sort((a, b) => b.score - a.score);
     
-    // Classer les scénarios du meilleur au pire
-    const rankedScenarios = [...results].sort((a, b) => 
-      b.summary[optimizationCriteria] - a.summary[optimizationCriteria]
+    // Identifier le meilleur scénario selon différents critères
+    const bestOverall = analyzedScenarios[0];
+    const bestCashflow = this._findBestFor(analyzedScenarios, s => s.analysis.cashflow || 0);
+    const bestCapRate = this._findBestFor(analyzedScenarios, s => s.analysis.capRate || 0);
+    const bestCashOnCash = this._findBestFor(analyzedScenarios, s => s.analysis.cashOnCash || 0);
+    
+    return {
+      scenarios: analyzedScenarios,
+      bestOverall: bestOverall,
+      bestCashflow: bestCashflow,
+      bestCapRate: bestCapRate,
+      bestCashOnCash: bestCashOnCash,
+      summary: this._generateSummary(analyzedScenarios, bestOverall, settings)
+    };
+  }
+  
+  /**
+   * Analyse un scénario individuel
+   * @param {Object} scenario Le scénario à analyser
+   * @returns {Object} Les résultats de l'analyse
+   */
+  static _analyzeScenario(scenario) {
+    // Déterminer s'il s'agit d'un FLIP ou d'un MULTI
+    const isFlip = scenario.hasOwnProperty('salePrice');
+    
+    if (isFlip) {
+      return this._analyzeFlipScenario(scenario);
+    } else {
+      return this._analyzeMultiScenario(scenario);
+    }
+  }
+  
+  /**
+   * Analyse un scénario de type FLIP
+   * @param {Object} scenario Le scénario FLIP à analyser
+   * @returns {Object} Les résultats de l'analyse
+   */
+  static _analyzeFlipScenario(scenario) {
+    const purchasePrice = scenario.purchasePrice || 0;
+    const renovationCost = scenario.renovationCost || 0;
+    const sellingCosts = scenario.sellingCosts || (scenario.salePrice * 0.06); // ~6% par défaut
+    const totalInvestment = purchasePrice + renovationCost;
+    const profit = scenario.salePrice - totalInvestment - sellingCosts;
+    const roi = (profit / totalInvestment) * 100;
+    const monthsHeld = scenario.monthsHeld || 6;
+    const annualizedRoi = roi * (12 / monthsHeld);
+    
+    return {
+      type: 'FLIP',
+      investment: totalInvestment,
+      profit: profit,
+      roi: roi,
+      annualizedRoi: annualizedRoi,
+      score: roi
+    };
+  }
+  
+  /**
+   * Analyse un scénario de type MULTI (immeuble à revenus)
+   * @param {Object} scenario Le scénario MULTI à analyser
+   * @returns {Object} Les résultats de l'analyse
+   */
+  static _analyzeMultiScenario(scenario) {
+    const purchasePrice = scenario.purchasePrice || 0;
+    const renovationCost = scenario.renovationCost || 0;
+    const totalInvestment = purchasePrice + renovationCost;
+    const units = scenario.units || 1;
+    
+    // Calcul du revenu net d'exploitation (NOI)
+    const grossIncome = scenario.grossAnnualRent || 0;
+    const expenseRatio = this._getExpenseRatio(units);
+    const expenses = scenario.annualExpenses || (grossIncome * expenseRatio);
+    const noi = grossIncome - expenses;
+    
+    // Calcul du taux de capitalisation
+    const capRate = (noi / totalInvestment) * 100;
+    
+    // Calcul du financement
+    const downPaymentRatio = scenario.downPaymentRatio || 0.25;
+    const interestRate = scenario.interestRate || 4.5;
+    const amortizationYears = scenario.amortizationYears || 25;
+    
+    const downPayment = totalInvestment * downPaymentRatio;
+    const mortgageAmount = totalInvestment - downPayment;
+    const annualMortgagePayment = this._calculateAnnualMortgagePayment(
+      mortgageAmount, 
+      interestRate, 
+      amortizationYears
     );
     
+    // Calcul du cashflow
+    const annualCashflow = noi - annualMortgagePayment;
+    const monthlyCashflow = annualCashflow / 12;
+    const cashflowPerUnit = monthlyCashflow / units;
+    const cashOnCash = (annualCashflow / downPayment) * 100;
+    
     return {
-      optimizationCriteria,
-      optimalScenario,
-      rankedScenarios,
-      scenarioCount: scenarios.length,
-      allResults: results
+      type: 'MULTI',
+      investment: totalInvestment,
+      downPayment: downPayment,
+      noi: noi,
+      capRate: capRate,
+      cashflow: annualCashflow,
+      cashflowPerUnit: cashflowPerUnit,
+      cashOnCash: cashOnCash,
+      score: cashOnCash
     };
   }
   
   /**
-   * Compare plusieurs scénarios pour un projet MULTI
-   * 
-   * @param {Array<Object>} scenarios - Tableau de scénarios à comparer
-   * @param {string} optimizationCriteria - Critère d'optimisation (cashflowPerUnit, capRate, cashOnCash)
-   * @returns {Object} Résultats de la comparaison
+   * Calcule un score global pour un scénario
+   * @param {Object} analysis Résultats de l'analyse du scénario
+   * @param {Object} settings Options de pondération
+   * @returns {number} Score du scénario
    */
-  static compareMultiScenarios(scenarios, optimizationCriteria = 'cashflowPerUnit') {
-    if (!scenarios || scenarios.length === 0) {
-      throw new Error('Au moins un scénario doit être fourni');
-    }
-    
-    // Valider le critère d'optimisation
-    const validCriteria = ['cashflowPerUnit', 'capRate', 'cashOnCash', 'netOperatingIncome'];
-    if (!validCriteria.includes(optimizationCriteria)) {
-      throw new Error(`Critère d'optimisation invalide. Valeurs acceptées: ${validCriteria.join(', ')}`);
-    }
-    
-    // Calculer les résultats de chaque scénario
-    const results = scenarios.map((scenario, index) => {
-      const result = MultiDetailedCalculator.calculate(scenario);
-      return {
-        scenarioIndex: index,
-        scenarioName: scenario.name || `Scénario ${index + 1}`,
-        summary: result.summary
-      };
-    });
-    
-    // Trouver le scénario optimal selon le critère choisi
-    const optimalScenario = results.reduce((best, current) => {
-      return current.summary[optimizationCriteria] > best.summary[optimizationCriteria] ? current : best;
-    }, results[0]);
-    
-    // Classer les scénarios du meilleur au pire
-    const rankedScenarios = [...results].sort((a, b) => 
-      b.summary[optimizationCriteria] - a.summary[optimizationCriteria]
-    );
-    
-    return {
-      optimizationCriteria,
-      optimalScenario,
-      rankedScenarios,
-      scenarioCount: scenarios.length,
-      allResults: results
-    };
-  }
-  
-  /**
-   * Analyse de sensibilité pour un scénario FLIP
-   * 
-   * @param {Object} baseScenario - Scénario de base
-   * @param {string} variableToAnalyze - Variable à analyser (purchasePrice, sellingPrice, renovationCost)
-   * @param {number} variationPercentage - Pourcentage de variation (positif ou négatif)
-   * @param {number} steps - Nombre d'étapes dans l'analyse
-   * @returns {Object} Résultats de l'analyse de sensibilité
-   */
-  static flipSensitivityAnalysis(baseScenario, variableToAnalyze, variationPercentage, steps = 5) {
-    if (!baseScenario || !baseScenario[variableToAnalyze]) {
-      throw new Error(`Scénario de base invalide ou variable ${variableToAnalyze} non définie`);
-    }
-    
-    const baseValue = baseScenario[variableToAnalyze];
-    const stepSize = (variationPercentage / 100) * baseValue / steps;
-    
-    const scenarios = [];
-    
-    // Créer les scénarios avec les variations
-    for (let i = -steps; i <= steps; i++) {
-      if (i === 0) continue; // Sauter le cas du milieu (base scenario)
+  static _calculateScore(analysis, settings) {
+    if (analysis.type === 'FLIP') {
+      return analysis.roi;
+    } else {
+      // Pour MULTI, calcul pondéré selon les critères
+      let score = 0;
       
-      const variation = i * stepSize;
-      const newValue = baseValue + variation;
-      
-      // Créer une copie du scénario de base et modifier la variable
-      const scenario = { ...baseScenario, [variableToAnalyze]: newValue };
-      scenario.name = `${variableToAnalyze} ${i > 0 ? '+' : ''}${(i * variationPercentage / steps).toFixed(1)}%`;
-      
-      scenarios.push(scenario);
-    }
-    
-    // Ajouter le scénario de base
-    const baseScenarioCopy = { ...baseScenario, name: 'Scénario de base' };
-    scenarios.push(baseScenarioCopy);
-    
-    // Comparer les scénarios
-    const comparison = this.compareFlipScenarios(scenarios, 'profit');
-    
-    return {
-      variableAnalyzed: variableToAnalyze,
-      baseValue,
-      variationPercentage,
-      steps,
-      comparison
-    };
-  }
-  
-  /**
-   * Analyse de sensibilité pour un scénario MULTI
-   * 
-   * @param {Object} baseScenario - Scénario de base
-   * @param {string} variableToAnalyze - Variable à analyser (purchasePrice, grossAnnualRent, operatingExpenses)
-   * @param {number} variationPercentage - Pourcentage de variation (positif ou négatif)
-   * @param {number} steps - Nombre d'étapes dans l'analyse
-   * @returns {Object} Résultats de l'analyse de sensibilité
-   */
-  static multiSensitivityAnalysis(baseScenario, variableToAnalyze, variationPercentage, steps = 5) {
-    if (!baseScenario || !baseScenario[variableToAnalyze]) {
-      throw new Error(`Scénario de base invalide ou variable ${variableToAnalyze} non définie`);
-    }
-    
-    const baseValue = baseScenario[variableToAnalyze];
-    const stepSize = (variationPercentage / 100) * baseValue / steps;
-    
-    const scenarios = [];
-    
-    // Créer les scénarios avec les variations
-    for (let i = -steps; i <= steps; i++) {
-      if (i === 0) continue; // Sauter le cas du milieu (base scenario)
-      
-      const variation = i * stepSize;
-      const newValue = baseValue + variation;
-      
-      // Créer une copie du scénario de base et modifier la variable
-      const scenario = { ...baseScenario, [variableToAnalyze]: newValue };
-      scenario.name = `${variableToAnalyze} ${i > 0 ? '+' : ''}${(i * variationPercentage / steps).toFixed(1)}%`;
-      
-      scenarios.push(scenario);
-    }
-    
-    // Ajouter le scénario de base
-    const baseScenarioCopy = { ...baseScenario, name: 'Scénario de base' };
-    scenarios.push(baseScenarioCopy);
-    
-    // Comparer les scénarios
-    const comparison = this.compareMultiScenarios(scenarios, 'cashflowPerUnit');
-    
-    return {
-      variableAnalyzed: variableToAnalyze,
-      baseValue,
-      variationPercentage,
-      steps,
-      comparison
-    };
-  }
-  
-  /**
-   * Génère un rapport comparatif détaillé pour plusieurs projets différents
-   * 
-   * @param {Array<Object>} projects - Tableau de projets à comparer (FLIP et/ou MULTI)
-   * @returns {Object} Rapport comparatif détaillé
-   */
-  static generatePortfolioComparison(projects) {
-    if (!projects || projects.length === 0) {
-      throw new Error('Au moins un projet doit être fourni');
-    }
-    
-    const results = projects.map((project, index) => {
-      // Déterminer le type de projet
-      const isFlip = project.type === 'FLIP' || project.hasOwnProperty('sellingPrice');
-      const calculator = isFlip ? FlipDetailedCalculator : MultiDetailedCalculator;
-      
-      const result = calculator.calculate(project);
-      
-      return {
-        projectIndex: index,
-        projectName: project.name || `Projet ${index + 1}`,
-        projectType: isFlip ? 'FLIP' : 'MULTI',
-        summary: result.summary,
-        // Calculer les métriques communes pour permettre la comparaison
-        metrics: {
-          totalInvestment: isFlip ? result.summary.totalInvestment : (project.purchasePrice + (project.renovationCost || 0)),
-          annualizedROI: isFlip ? result.summary.annualizedRoi : result.summary.cashOnCash,
-          paybackPeriod: isFlip ? null : (result.summary.cashflowPerUnit > 0 ? 
-            (project.purchasePrice / (result.summary.cashflowPerUnit * project.units * 12)) : Infinity)
-        }
-      };
-    });
-    
-    // Trier par différents critères pour la comparaison
-    const byROI = [...results].sort((a, b) => b.metrics.annualizedROI - a.metrics.annualizedROI);
-    const byInvestment = [...results].sort((a, b) => a.metrics.totalInvestment - b.metrics.totalInvestment);
-    
-    return {
-      projectCount: projects.length,
-      flipCount: results.filter(r => r.projectType === 'FLIP').length,
-      multiCount: results.filter(r => r.projectType === 'MULTI').length,
-      highestROI: byROI[0],
-      lowestInvestment: byInvestment[0],
-      allResults: results,
-      rankings: {
-        byROI,
-        byInvestment
+      if (analysis.cashflowPerUnit < settings.minViableCashflowPerUnit) {
+        // Pénalité pour les cashflows trop faibles
+        score -= (settings.minViableCashflowPerUnit - analysis.cashflowPerUnit) * 0.5;
       }
-    };
+      
+      score += (analysis.cashflowPerUnit * settings.weightCashflow);
+      score += (analysis.capRate * settings.weightCapRate);
+      score += (analysis.cashOnCash * settings.weightCashOnCash);
+      
+      return score;
+    }
+  }
+  
+  /**
+   * Trouve le meilleur scénario selon un critère spécifique
+   * @param {Array} scenarios Scénarios analysés
+   * @param {Function} criteriaFn Fonction extrayant le critère de comparaison
+   * @returns {Object} Le meilleur scénario selon le critère
+   */
+  static _findBestFor(scenarios, criteriaFn) {
+    return scenarios.reduce((best, current) => {
+      return criteriaFn(current) > criteriaFn(best) ? current : best;
+    }, scenarios[0]);
+  }
+  
+  /**
+   * Génère un résumé textuel de la comparaison
+   * @param {Array} scenarios Scénarios analysés
+   * @param {Object} bestOverall Meilleur scénario global
+   * @param {Object} settings Options utilisées
+   * @returns {string} Résumé de la comparaison
+   */
+  static _generateSummary(scenarios, bestOverall, settings) {
+    const scenarioType = bestOverall.analysis.type;
+    let summary = `Analyse comparative de ${scenarios.length} scénarios. `;
+    
+    if (scenarioType === 'FLIP') {
+      summary += `Le scénario "${bestOverall.name}" offre le meilleur rendement avec un ROI de ${bestOverall.analysis.roi.toFixed(2)}%.`;
+    } else {
+      summary += `Le scénario "${bestOverall.name}" est le plus avantageux avec un cashflow mensuel par unité de ${bestOverall.analysis.cashflowPerUnit.toFixed(2)}$, `;
+      summary += `un taux de capitalisation de ${bestOverall.analysis.capRate.toFixed(2)}% `;
+      summary += `et un rendement sur investissement de ${bestOverall.analysis.cashOnCash.toFixed(2)}%.`;
+    }
+    
+    return summary;
+  }
+  
+  /**
+   * Détermine le ratio de dépenses en fonction du nombre d'unités
+   * @param {number} units Nombre d'unités
+   * @returns {number} Ratio de dépenses (0-1)
+   */
+  static _getExpenseRatio(units) {
+    if (units <= 2) return 0.30; // 30% pour 1-2 logements
+    if (units <= 4) return 0.35; // 35% pour 3-4 logements
+    if (units <= 6) return 0.45; // 45% pour 5-6 logements
+    return 0.50; // 50% pour 7+ logements
+  }
+  
+  /**
+   * Calcule le paiement hypothécaire annuel
+   * @param {number} principal Montant du prêt
+   * @param {number} annualRate Taux d'intérêt annuel (%)
+   * @param {number} years Années d'amortissement
+   * @returns {number} Paiement annuel
+   */
+  static _calculateAnnualMortgagePayment(principal, annualRate, years) {
+    const monthlyRate = annualRate / 100 / 12;
+    const numPayments = years * 12;
+    
+    if (monthlyRate === 0) return principal / years;
+    
+    const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+                          (Math.pow(1 + monthlyRate, numPayments) - 1);
+                          
+    return monthlyPayment * 12;
   }
 }
 
