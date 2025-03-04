@@ -1,160 +1,190 @@
 /**
- * Utilitaire pour calculer les métriques de liquidité et de rentabilité des investissements immobiliers
+ * Utilitaire de calcul pour l'analyse de liquidité et de rentabilité immobilière
+ * Cet utilitaire fournit des fonctions pour analyser les aspects financiers
+ * d'un investissement immobilier, y compris:
+ * - Calcul de liquidité (cashflow)
+ * - Analyse de rentabilité
+ * - Analyse de sensibilité
+ * - Points d'équilibre
+ * - Analyse des risques
  */
+
 class LiquidityCalculatorUtility {
   /**
-   * Valide les données d'entrée de la propriété
-   * @param {Object} property - Objet contenant les détails de la propriété
-   * @private
+   * Calcule les indicateurs de liquidité d'un investissement immobilier
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Object} Résultats des calculs de liquidité
    */
-  static _validatePropertyData(property) {
-    // Validation des données requises
-    if (!property) {
-      throw new Error('Les données de la propriété sont requises');
-    }
+  static calculateLiquidity(propertyData) {
+    // 1. Calculer le cashflow
+    const cashflow = this.calculateCashflow(propertyData);
     
-    if (!property.purchasePrice || property.purchasePrice <= 0) {
-      throw new Error('Le prix d\'achat doit être un nombre positif');
-    }
+    // 2. Calculer les ratios financiers
+    const ratios = this.calculateFinancialRatios(propertyData, cashflow);
     
-    if (!property.grossAnnualRent || property.grossAnnualRent <= 0) {
-      throw new Error('Le revenu locatif annuel brut doit être un nombre positif');
-    }
-    
-    if (!property.units || property.units <= 0) {
-      throw new Error('Le nombre d\'unités doit être un nombre positif');
-    }
-    
-    if (property.interestRate === undefined || property.interestRate <= 0) {
-      throw new Error('Le taux d\'intérêt doit être un nombre positif');
-    }
-    
-    if (property.amortizationYears === undefined || property.amortizationYears <= 0) {
-      throw new Error('La période d\'amortissement doit être un nombre positif');
-    }
+    return {
+      cashflow,
+      ratios
+    };
   }
   
   /**
-   * Calcule les métriques de liquidité pour un investissement immobilier
-   * @param {Object} property - Objet contenant les détails de la propriété
-   * @returns {Object} - Résultats des calculs de liquidité
+   * Calcule le cashflow d'une propriété
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Object} Résultats du calcul de cashflow
    */
-  static calculateLiquidity(property) {
-    // Validation des données d'entrée
-    this._validatePropertyData(property);
-    
-    // Extraction des paramètres avec valeurs par défaut
-    const { 
-      purchasePrice, 
-      grossAnnualRent, 
+  static calculateCashflow(propertyData) {
+    // Extraire les données nécessaires
+    const {
+      purchasePrice,
+      grossAnnualRent,
       units,
-      renovationCost = 0,
-      downPaymentRatio = 0.25,
+      downPaymentRatio,
       interestRate,
       amortizationYears,
-      expenseRatio = 40,
-      vacancyRate = 0
-    } = property;
+      expenseRatio,
+      vacancyRate
+    } = propertyData;
     
-    // Calcul du revenu annuel net après inoccupation
+    // Calcul des revenus après déduction du taux d'inoccupation
     const annualRevenueAfterVacancy = grossAnnualRent * (1 - vacancyRate / 100);
     
     // Calcul des dépenses annuelles
-    const annualExpenses = annualRevenueAfterVacancy * (expenseRatio / 100);
+    const annualExpenses = grossAnnualRent * (expenseRatio / 100);
     
-    // Revenu net d'exploitation
+    // Calcul du revenu net d'exploitation (NOI)
     const netOperatingIncome = annualRevenueAfterVacancy - annualExpenses;
     
-    // Calcul du paiement hypothécaire
+    // Calcul de l'hypothèque
     const loanAmount = purchasePrice * (1 - downPaymentRatio);
-    const monthlyRate = interestRate / 100 / 12;
-    const totalPayments = amortizationYears * 12;
+    const monthlyInterestRate = interestRate / 100 / 12;
+    const numberOfPayments = amortizationYears * 12;
     
-    const monthlyMortgagePayment = loanAmount * (
-      monthlyRate * Math.pow(1 + monthlyRate, totalPayments)
-    ) / (
-      Math.pow(1 + monthlyRate, totalPayments) - 1
-    );
+    // Formule de calcul d'un prêt avec versements mensuels constants
+    let monthlyMortgagePayment = 0;
+    if (monthlyInterestRate > 0) {
+      monthlyMortgagePayment = loanAmount * 
+        (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfPayments)) / 
+        (Math.pow(1 + monthlyInterestRate, numberOfPayments) - 1);
+    } else {
+      // Si taux d'intérêt est 0, simple division
+      monthlyMortgagePayment = loanAmount / numberOfPayments;
+    }
     
     const annualMortgagePayment = monthlyMortgagePayment * 12;
     
     // Calcul du cashflow
     const annualCashflow = netOperatingIncome - annualMortgagePayment;
     const monthlyCashflow = annualCashflow / 12;
-    const cashflowPerUnit = monthlyCashflow / units;
-    
-    // Calcul des ratios
-    const capRate = (netOperatingIncome / (purchasePrice + renovationCost)) * 100;
-    const rentToValue = (grossAnnualRent / purchasePrice) * 100;
-    const dscr = netOperatingIncome / annualMortgagePayment;
-    const grm = purchasePrice / grossAnnualRent;
-    const mrb = grossAnnualRent / purchasePrice;
+    const cashflowPerUnit = units > 0 ? monthlyCashflow / units : 0;
     
     return {
-      cashflow: {
-        annualRevenueAfterVacancy,
-        annualExpenses,
-        netOperatingIncome,
-        annualMortgagePayment,
-        annualCashflow,
-        monthlyCashflow,
-        cashflowPerUnit
-      },
-      ratios: {
-        capRate,
-        rentToValue,
-        dscr,
-        grm,
-        mrb
-      }
+      annualRevenueAfterVacancy,
+      annualExpenses,
+      netOperatingIncome,
+      annualMortgagePayment,
+      annualCashflow,
+      monthlyCashflow,
+      cashflowPerUnit
     };
   }
-
+  
   /**
-   * Calcule le rendement total d'un investissement immobilier sur une période donnée
-   * @param {Object} property - Objet contenant les détails de la propriété
-   * @returns {Object} - Résultats du calcul de rendement total
+   * Calcule les ratios financiers
+   * @param {Object} propertyData - Données de la propriété
+   * @param {Object} cashflow - Résultats du calcul de cashflow
+   * @returns {Object} Ratios financiers
    */
-  static calculateTotalReturn(property) {
-    // Validation des données d'entrée
-    this._validatePropertyData(property);
+  static calculateFinancialRatios(propertyData, cashflow) {
+    const { purchasePrice, grossAnnualRent } = propertyData;
+    const { netOperatingIncome, annualMortgagePayment } = cashflow;
     
-    // Calculs de base de liquidité
-    const liquidityResults = this.calculateLiquidity(property);
+    // Taux de capitalisation (Cap Rate) = NOI / Prix d'achat
+    const capRate = (netOperatingIncome / purchasePrice) * 100;
     
-    // Paramètres requis
-    const { 
-      purchasePrice, 
-      downPaymentRatio = 0.25, 
-      appreciationRate = 2, 
-      holdingPeriod = 5,
-      renovationCost = 0
-    } = property;
+    // Ratio Loyer/Valeur = Revenu locatif brut annuel / Prix d'achat
+    const rentToValue = (grossAnnualRent / purchasePrice) * 100;
     
+    // Ratio de couverture du service de la dette (DSCR) = NOI / Paiement hypothécaire annuel
+    const dscr = annualMortgagePayment > 0 ? netOperatingIncome / annualMortgagePayment : 0;
+    
+    // Multiplicateur de revenu brut (GRM) = Prix d'achat / Revenu locatif brut annuel
+    const grm = grossAnnualRent > 0 ? purchasePrice / grossAnnualRent : 0;
+    
+    // Ratio MRB (Multiple du Revenu Brut inversé) = 1 / GRM
+    const mrb = grm > 0 ? 1 / grm : 0;
+    
+    return {
+      capRate,
+      rentToValue,
+      dscr,
+      grm,
+      mrb
+    };
+  }
+  
+  /**
+   * Calcule le rendement total d'un investissement immobilier
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Object} Résultats des calculs de rendement
+   */
+  static calculateTotalReturn(propertyData) {
+    const {
+      purchasePrice,
+      renovationCost,
+      downPaymentRatio,
+      interestRate,
+      amortizationYears,
+      appreciationRate,
+      holdingPeriod
+    } = propertyData;
+    
+    // Calculer le cashflow pour obtenir le revenu mensuel
+    const cashflowResults = this.calculateCashflow(propertyData);
+    
+    // Calcul de l'investissement initial
     const downPayment = purchasePrice * downPaymentRatio;
     const totalInvestment = downPayment + renovationCost;
     
-    // Calcul de l'appréciation du capital
-    const futureValue = purchasePrice * Math.pow(1 + (appreciationRate / 100), holdingPeriod);
-    const capitalGain = futureValue - purchasePrice;
+    // Valeur future de la propriété
+    const futurePropertyValue = purchasePrice * Math.pow(1 + appreciationRate / 100, holdingPeriod);
     
-    // Calcul de l'équité constituée par le remboursement du prêt
+    // Calcul de l'équité générée par le remboursement du prêt
     const loanAmount = purchasePrice * (1 - downPaymentRatio);
-    const equityGainFromLoanPaydown = this._calculateEquityFromLoanPaydown(
-      loanAmount, 
-      property.interestRate, 
-      property.amortizationYears, 
-      holdingPeriod
-    );
+    const monthlyInterestRate = interestRate / 100 / 12;
+    const numberOfPayments = amortizationYears * 12;
+    const numberOfPaymentsMade = Math.min(holdingPeriod * 12, numberOfPayments);
     
-    // Calcul du cashflow cumulé
-    const annualCashflow = liquidityResults.cashflow.annualCashflow;
-    const cumulativeCashflow = annualCashflow * holdingPeriod;
+    // Calculer le solde restant du prêt après la période de détention
+    let remainingLoanBalance = loanAmount;
+    if (monthlyInterestRate > 0) {
+      remainingLoanBalance = this.calculateRemainingLoanBalance(
+        loanAmount,
+        monthlyInterestRate,
+        numberOfPayments,
+        numberOfPaymentsMade
+      );
+    } else {
+      // Si taux d'intérêt est 0, simple amortissement linéaire
+      remainingLoanBalance = loanAmount * (1 - numberOfPaymentsMade / numberOfPayments);
+    }
     
-    // Calcul du retour sur investissement total
+    const equityGainFromLoanPaydown = loanAmount - remainingLoanBalance;
+    
+    // Cashflow cumulé sur la période de détention
+    const cumulativeCashflow = cashflowResults.annualCashflow * holdingPeriod;
+    
+    // Gain en capital (appréciation)
+    const capitalGain = futurePropertyValue - purchasePrice;
+    
+    // Gain total
     const totalGain = capitalGain + equityGainFromLoanPaydown + cumulativeCashflow;
-    const totalROI = (totalGain / totalInvestment) * 100;
-    const annualizedROI = Math.pow(1 + (totalROI / 100), 1 / holdingPeriod) * 100 - 100;
+    
+    // ROI total sur la période
+    const totalROI = totalInvestment > 0 ? (totalGain / totalInvestment) * 100 : 0;
+    
+    // ROI annualisé
+    const annualizedROI = holdingPeriod > 0 ? totalROI / holdingPeriod : 0;
     
     return {
       initialInvestment: {
@@ -164,8 +194,8 @@ class LiquidityCalculatorUtility {
       },
       futureValue: {
         initialPropertyValue: purchasePrice,
-        finalPropertyValue: futureValue,
-        appreciationRate: appreciationRate
+        finalPropertyValue: futurePropertyValue,
+        appreciationRate
       },
       gains: {
         capitalGain,
@@ -174,142 +204,65 @@ class LiquidityCalculatorUtility {
         totalGain
       },
       returns: {
-        totalROI: parseFloat(totalROI.toFixed(2)),
-        annualizedROI: parseFloat(annualizedROI.toFixed(2))
+        totalROI,
+        annualizedROI
       },
       details: {
         holdingPeriod,
-        monthlyCashflow: liquidityResults.cashflow.monthlyCashflow,
-        annualCashflow
+        monthlyCashflow: cashflowResults.monthlyCashflow,
+        annualCashflow: cashflowResults.annualCashflow
       }
     };
   }
-
+  
   /**
-   * Calcule l'équité constituée par le remboursement du prêt
-   * @param {number} loanAmount - Montant initial du prêt
-   * @param {number} interestRate - Taux d'intérêt en pourcentage
-   * @param {number} amortizationYears - Durée d'amortissement en années
-   * @param {number} holdingPeriod - Période de détention en années
-   * @returns {number} - Montant de l'équité constituée
-   * @private
+   * Calcule le solde restant d'un prêt après un certain nombre de paiements
+   * @param {Number} principal - Capital initial
+   * @param {Number} monthlyRate - Taux d'intérêt mensuel
+   * @param {Number} totalPayments - Nombre total de paiements
+   * @param {Number} paymentsMade - Nombre de paiements effectués
+   * @returns {Number} Solde restant du prêt
    */
-  static _calculateEquityFromLoanPaydown(loanAmount, interestRate, amortizationYears, holdingPeriod) {
-    const monthlyRate = interestRate / 100 / 12;
-    const totalPayments = amortizationYears * 12;
+  static calculateRemainingLoanBalance(principal, monthlyRate, totalPayments, paymentsMade) {
+    // Calcul du paiement mensuel
+    const monthlyPayment = principal * 
+      (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / 
+      (Math.pow(1 + monthlyRate, totalPayments) - 1);
     
-    const monthlyPayment = loanAmount * (
-      monthlyRate * Math.pow(1 + monthlyRate, totalPayments)
-    ) / (
-      Math.pow(1 + monthlyRate, totalPayments) - 1
-    );
+    // Calcul du solde restant après un certain nombre de paiements
+    const remainingBalance = principal * 
+      (Math.pow(1 + monthlyRate, totalPayments) - Math.pow(1 + monthlyRate, paymentsMade)) / 
+      (Math.pow(1 + monthlyRate, totalPayments) - 1);
     
-    let remainingBalance = loanAmount;
-    let accumulatedPrincipal = 0;
-    
-    for (let i = 0; i < holdingPeriod * 12; i++) {
-      const interestPayment = remainingBalance * monthlyRate;
-      const principalPayment = monthlyPayment - interestPayment;
-      
-      remainingBalance -= principalPayment;
-      accumulatedPrincipal += principalPayment;
-    }
-    
-    return accumulatedPrincipal;
+    return remainingBalance;
   }
-
+  
   /**
-   * Effectue une analyse de sensibilité pour évaluer l'impact des changements de paramètres
-   * @param {Object} property - Objet contenant les détails de la propriété
-   * @param {Object} options - Options pour l'analyse de sensibilité
-   * @returns {Object} - Résultats de l'analyse de sensibilité
+   * Effectue une analyse de sensibilité
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Object} Résultats de l'analyse de sensibilité
    */
-  static performSensitivityAnalysis(property, options = {}) {
-    // Validation des données d'entrée
-    this._validatePropertyData(property);
+  static performSensitivityAnalysis(propertyData) {
+    const baseCase = {
+      interestRate: propertyData.interestRate,
+      vacancyRate: propertyData.vacancyRate,
+      expenseRatio: propertyData.expenseRatio
+    };
     
-    // Paramètres par défaut pour l'analyse de sensibilité
-    const {
-      interestRateVariations = [-1, -0.5, 0, 0.5, 1, 2],
-      vacancyRateVariations = [0, 2, 5, 10],
-      expenseRatioVariations = [-5, 0, 5, 10],
-      rentVariations = [-10, -5, 0, 5, 10]
-    } = options;
+    // 1. Sensibilité au taux d'intérêt
+    const interestRateSensitivity = this.analyzeInterestRateSensitivity(propertyData);
     
-    // Base case calculation
-    const baseCaseResults = this.calculateLiquidity(property);
+    // 2. Sensibilité au taux d'inoccupation
+    const vacancyRateSensitivity = this.analyzeVacancyRateSensitivity(propertyData);
     
-    // Analyse de sensibilité pour le taux d'intérêt
-    const interestRateSensitivity = interestRateVariations.map(variation => {
-      const modifiedProperty = { ...property, interestRate: property.interestRate + variation };
-      const results = this.calculateLiquidity(modifiedProperty);
-      return {
-        variation: variation > 0 ? `+${variation}` : variation,
-        interestRate: modifiedProperty.interestRate,
-        monthlyCashflow: results.cashflow.monthlyCashflow,
-        cashflowPerUnit: results.cashflow.cashflowPerUnit,
-        capRate: results.ratios.capRate,
-        dscr: results.ratios.dscr
-      };
-    });
+    // 3. Sensibilité au ratio de dépenses
+    const expenseRatioSensitivity = this.analyzeExpenseRatioSensitivity(propertyData);
     
-    // Analyse de sensibilité pour le taux d'inoccupation
-    const vacancyRateSensitivity = vacancyRateVariations.map(vacancyRate => {
-      const modifiedProperty = { ...property, vacancyRate };
-      const results = this.calculateLiquidity(modifiedProperty);
-      return {
-        vacancyRate,
-        monthlyCashflow: results.cashflow.monthlyCashflow,
-        cashflowPerUnit: results.cashflow.cashflowPerUnit,
-        capRate: results.ratios.capRate,
-        dscr: results.ratios.dscr
-      };
-    });
-    
-    // Analyse de sensibilité pour le ratio de dépenses
-    const expenseRatioSensitivity = expenseRatioVariations.map(variation => {
-      const baseExpenseRatio = property.expenseRatio || 40; // 40% par défaut
-      const modifiedProperty = { ...property, expenseRatio: baseExpenseRatio + variation };
-      const results = this.calculateLiquidity(modifiedProperty);
-      return {
-        variation: variation > 0 ? `+${variation}` : variation,
-        expenseRatio: modifiedProperty.expenseRatio,
-        monthlyCashflow: results.cashflow.monthlyCashflow,
-        cashflowPerUnit: results.cashflow.cashflowPerUnit,
-        capRate: results.ratios.capRate,
-        dscr: results.ratios.dscr
-      };
-    });
-    
-    // Analyse de sensibilité pour le loyer
-    const rentSensitivity = rentVariations.map(variation => {
-      const rentMultiplier = 1 + (variation / 100);
-      const modifiedProperty = { 
-        ...property, 
-        grossAnnualRent: property.grossAnnualRent * rentMultiplier 
-      };
-      const results = this.calculateLiquidity(modifiedProperty);
-      return {
-        variation: variation > 0 ? `+${variation}%` : `${variation}%`,
-        grossAnnualRent: modifiedProperty.grossAnnualRent,
-        monthlyCashflow: results.cashflow.monthlyCashflow,
-        cashflowPerUnit: results.cashflow.cashflowPerUnit,
-        capRate: results.ratios.capRate,
-        dscr: results.ratios.dscr
-      };
-    });
+    // 4. Sensibilité au loyer
+    const rentSensitivity = this.analyzeRentSensitivity(propertyData);
     
     return {
-      baseCase: {
-        interestRate: property.interestRate,
-        vacancyRate: property.vacancyRate || 0,
-        expenseRatio: property.expenseRatio || 40,
-        grossAnnualRent: property.grossAnnualRent,
-        monthlyCashflow: baseCaseResults.cashflow.monthlyCashflow,
-        cashflowPerUnit: baseCaseResults.cashflow.cashflowPerUnit,
-        capRate: baseCaseResults.ratios.capRate,
-        dscr: baseCaseResults.ratios.dscr
-      },
+      baseCase,
       sensitivityResults: {
         interestRate: interestRateSensitivity,
         vacancyRate: vacancyRateSensitivity,
@@ -318,458 +271,439 @@ class LiquidityCalculatorUtility {
       }
     };
   }
-
+  
   /**
-   * Compare plusieurs propriétés immobilières
-   * @param {Array} properties - Tableau d'objets contenant les détails des propriétés
-   * @returns {Object} - Résultats de la comparaison
+   * Analyse la sensibilité au taux d'intérêt
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Array} Résultats de l'analyse
    */
-  static compareProperties(properties) {
-    if (!Array.isArray(properties) || properties.length < 2) {
-      throw new Error('Vous devez fournir au moins deux propriétés pour effectuer une comparaison');
-    }
+  static analyzeInterestRateSensitivity(propertyData) {
+    const baseInterestRate = propertyData.interestRate;
+    const results = [];
     
-    // Calculer les résultats pour chaque propriété
-    const results = properties.map((property, index) => {
-      // Vérifier si la propriété a un identifiant
-      const propertyId = property.id || `Propriété ${index + 1}`;
+    // Variations du taux d'intérêt de -2% à +3% par incréments de 1%
+    for (let variation = -2; variation <= 3; variation++) {
+      const modifiedPropertyData = { ...propertyData };
+      modifiedPropertyData.interestRate = Math.max(0.1, baseInterestRate + variation);
       
-      // Calculer les indicateurs clés
-      const liquidityResults = this.calculateLiquidity(property);
-      const returnResults = this.calculateTotalReturn(property);
+      const cashflow = this.calculateCashflow(modifiedPropertyData);
+      const ratios = this.calculateFinancialRatios(modifiedPropertyData, cashflow);
       
-      return {
-        id: propertyId,
-        propertyDetails: {
-          address: property.address || 'Adresse non spécifiée',
-          units: property.units,
-          purchasePrice: property.purchasePrice,
-          grossAnnualRent: property.grossAnnualRent,
-          pricePerUnit: property.purchasePrice / property.units
-        },
-        cashflow: {
-          monthlyCashflow: liquidityResults.cashflow.monthlyCashflow,
-          annualCashflow: liquidityResults.cashflow.annualCashflow,
-          cashflowPerUnit: liquidityResults.cashflow.cashflowPerUnit
-        },
-        ratios: {
-          capRate: liquidityResults.ratios.capRate,
-          mrb: liquidityResults.ratios.mrb,
-          dscr: liquidityResults.ratios.dscr,
-          rentToValue: liquidityResults.ratios.rentToValue,
-          grm: liquidityResults.ratios.grm
-        },
-        returns: {
-          totalROI: returnResults.returns.totalROI,
-          annualizedROI: returnResults.returns.annualizedROI
-        }
-      };
-    });
-    
-    // Classer les propriétés selon différents critères
-    const rankings = {
-      cashflow: this._rankProperties(results, 'cashflow.cashflowPerUnit', true),
-      capRate: this._rankProperties(results, 'ratios.capRate', true),
-      dscr: this._rankProperties(results, 'ratios.dscr', true),
-      roi: this._rankProperties(results, 'returns.annualizedROI', true),
-      pricePerUnit: this._rankProperties(results, 'propertyDetails.pricePerUnit', false),
-      overall: this._calculateOverallRanking(results)
-    };
-    
-    return {
-      properties: results,
-      rankings
-    };
-  }
-
-  /**
-   * Classe les propriétés selon un critère spécifique
-   * @param {Array} properties - Liste des propriétés avec leurs résultats
-   * @param {string} criterion - Critère de classement (chemin d'accès à la propriété)
-   * @param {boolean} isHigherBetter - Indique si une valeur plus élevée est meilleure
-   * @returns {Array} - Classement des propriétés
-   * @private
-   */
-  static _rankProperties(properties, criterion, isHigherBetter) {
-    // Fonction pour accéder à une propriété imbriquée
-    const getNestedProperty = (obj, path) => {
-      return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-    };
-    
-    // Trier les propriétés selon le critère
-    const sortedProperties = [...properties].sort((a, b) => {
-      const valueA = getNestedProperty(a, criterion);
-      const valueB = getNestedProperty(b, criterion);
-      
-      return isHigherBetter ? valueB - valueA : valueA - valueB;
-    });
-    
-    // Créer le classement
-    return sortedProperties.map((prop, index) => ({
-      rank: index + 1,
-      id: prop.id,
-      value: getNestedProperty(prop, criterion)
-    }));
-  }
-
-  /**
-   * Calcule un classement global des propriétés
-   * @param {Array} properties - Liste des propriétés avec leurs résultats
-   * @returns {Array} - Classement global des propriétés
-   * @private
-   */
-  static _calculateOverallRanking(properties) {
-    // Critères importants pour un immeuble à revenus
-    const criteria = [
-      { path: 'cashflow.cashflowPerUnit', weight: 0.3, isHigherBetter: true },
-      { path: 'ratios.capRate', weight: 0.2, isHigherBetter: true },
-      { path: 'ratios.dscr', weight: 0.15, isHigherBetter: true },
-      { path: 'returns.annualizedROI', weight: 0.25, isHigherBetter: true },
-      { path: 'propertyDetails.pricePerUnit', weight: 0.1, isHigherBetter: false }
-    ];
-    
-    // Fonction pour accéder à une propriété imbriquée
-    const getNestedProperty = (obj, path) => {
-      return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-    };
-    
-    // Calculer les scores normalisés pour chaque propriété
-    const propertyScores = properties.map(property => {
-      let totalScore = 0;
-      
-      criteria.forEach(criterion => {
-        const values = properties.map(p => getNestedProperty(p, criterion.path));
-        const minValue = Math.min(...values);
-        const maxValue = Math.max(...values);
-        const range = maxValue - minValue;
-        
-        // Éviter la division par zéro
-        if (range === 0) return;
-        
-        const propertyValue = getNestedProperty(property, criterion.path);
-        let normalizedScore;
-        
-        if (criterion.isHigherBetter) {
-          normalizedScore = (propertyValue - minValue) / range;
-        } else {
-          normalizedScore = (maxValue - propertyValue) / range;
-        }
-        
-        totalScore += normalizedScore * criterion.weight;
+      results.push({
+        variation,
+        interestRate: modifiedPropertyData.interestRate,
+        cashflowPerUnit: cashflow.cashflowPerUnit,
+        monthlyCashflow: cashflow.monthlyCashflow,
+        dscr: ratios.dscr,
+        capRate: ratios.capRate
       });
-      
-      return {
-        id: property.id,
-        score: totalScore
-      };
-    });
-    
-    // Trier par score
-    const sortedScores = [...propertyScores].sort((a, b) => b.score - a.score);
-    
-    // Créer le classement
-    return sortedScores.map((prop, index) => ({
-      rank: index + 1,
-      id: prop.id,
-      score: parseFloat(prop.score.toFixed(2))
-    }));
-  }
-
-  /**
-   * Calcule le point d'équilibre pour une propriété immobilière
-   * @param {Object} property - Objet contenant les détails de la propriété
-   * @returns {Object} - Résultats du calcul du point d'équilibre
-   */
-  static calculateBreakeven(property) {
-    // Validation des données d'entrée
-    this._validatePropertyData(property);
-    
-    // Paramètres requis
-    const { 
-      purchasePrice, 
-      grossAnnualRent,
-      units,
-      downPaymentRatio = 0.25,
-      interestRate,
-      amortizationYears,
-      expenseRatio = 40
-    } = property;
-    
-    // Calcul des dépenses fixes annuelles (sans le prêt hypothécaire)
-    const annualExpenses = grossAnnualRent * (expenseRatio / 100);
-    
-    // Calcul du paiement hypothécaire
-    const loanAmount = purchasePrice * (1 - downPaymentRatio);
-    const monthlyRate = interestRate / 100 / 12;
-    const totalPayments = amortizationYears * 12;
-    
-    const monthlyMortgagePayment = loanAmount * (
-      monthlyRate * Math.pow(1 + monthlyRate, totalPayments)
-    ) / (
-      Math.pow(1 + monthlyRate, totalPayments) - 1
-    );
-    
-    const annualMortgagePayment = monthlyMortgagePayment * 12;
-    
-    // Calcul du taux d'occupation au point d'équilibre
-    const totalAnnualCosts = annualExpenses + annualMortgagePayment;
-    const breakEvenOccupancyRate = Math.min(100, Math.max(0, (totalAnnualCosts / grossAnnualRent) * 100));
-    
-    // Calcul du pourcentage du loyer actuel pour atteindre le point d'équilibre
-    const breakEvenRentPercent = Math.max(0, (totalAnnualCosts / grossAnnualRent) * 100);
-    
-    // Calcul du loyer minimum par unité pour atteindre le point d'équilibre
-    const minimumGrossRent = totalAnnualCosts;
-    const minimumMonthlyRentPerUnit = minimumGrossRent / 12 / units;
-    
-    // Calcul du taux d'intérêt maximum pour rester au point d'équilibre
-    let maxInterestRate = interestRate;
-    let maxInterestFound = false;
-    
-    // Recherche par incréments de 0.1%
-    while (!maxInterestFound && maxInterestRate < 25) { // Limite à 25% pour éviter les boucles infinies
-      maxInterestRate += 0.1;
-      
-      const testRate = maxInterestRate / 100 / 12;
-      const testMonthlyPayment = loanAmount * (
-        testRate * Math.pow(1 + testRate, totalPayments)
-      ) / (
-        Math.pow(1 + testRate, totalPayments) - 1
-      );
-      
-      const testAnnualPayment = testMonthlyPayment * 12;
-      const testTotalCosts = annualExpenses + testAnnualPayment;
-      
-      if (testTotalCosts > grossAnnualRent) {
-        maxInterestFound = true;
-        maxInterestRate -= 0.1; // Revenir au dernier taux viable
-      }
     }
     
+    return results;
+  }
+  
+  /**
+   * Analyse la sensibilité au taux d'inoccupation
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Array} Résultats de l'analyse
+   */
+  static analyzeVacancyRateSensitivity(propertyData) {
+    const results = [];
+    
+    // Variations du taux d'inoccupation: 0%, 2%, 5%, 8%, 10%, 15%
+    const vacancyRates = [0, 2, 5, 8, 10, 15];
+    
+    for (const vacancyRate of vacancyRates) {
+      const modifiedPropertyData = { ...propertyData };
+      modifiedPropertyData.vacancyRate = vacancyRate;
+      
+      const cashflow = this.calculateCashflow(modifiedPropertyData);
+      const ratios = this.calculateFinancialRatios(modifiedPropertyData, cashflow);
+      
+      results.push({
+        vacancyRate,
+        cashflowPerUnit: cashflow.cashflowPerUnit,
+        monthlyCashflow: cashflow.monthlyCashflow,
+        dscr: ratios.dscr,
+        capRate: ratios.capRate
+      });
+    }
+    
+    return results;
+  }
+  
+  /**
+   * Analyse la sensibilité au ratio de dépenses
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Array} Résultats de l'analyse
+   */
+  static analyzeExpenseRatioSensitivity(propertyData) {
+    const baseExpenseRatio = propertyData.expenseRatio;
+    const results = [];
+    
+    // Variations du ratio de dépenses de -10% à +15% par incréments de 5%
+    for (let variation = -10; variation <= 15; variation += 5) {
+      const modifiedPropertyData = { ...propertyData };
+      modifiedPropertyData.expenseRatio = Math.max(10, baseExpenseRatio + variation);
+      
+      const cashflow = this.calculateCashflow(modifiedPropertyData);
+      const ratios = this.calculateFinancialRatios(modifiedPropertyData, cashflow);
+      
+      results.push({
+        variation,
+        expenseRatio: modifiedPropertyData.expenseRatio,
+        cashflowPerUnit: cashflow.cashflowPerUnit,
+        monthlyCashflow: cashflow.monthlyCashflow,
+        dscr: ratios.dscr,
+        capRate: ratios.capRate
+      });
+    }
+    
+    return results;
+  }
+  
+  /**
+   * Analyse la sensibilité au loyer
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Array} Résultats de l'analyse
+   */
+  static analyzeRentSensitivity(propertyData) {
+    const baseRent = propertyData.grossAnnualRent;
+    const results = [];
+    
+    // Variations du loyer de -15% à +15% par incréments de 5%
+    for (let variation = -15; variation <= 15; variation += 5) {
+      const modifiedPropertyData = { ...propertyData };
+      modifiedPropertyData.grossAnnualRent = baseRent * (1 + variation / 100);
+      
+      const cashflow = this.calculateCashflow(modifiedPropertyData);
+      const ratios = this.calculateFinancialRatios(modifiedPropertyData, cashflow);
+      
+      results.push({
+        variation,
+        grossAnnualRent: modifiedPropertyData.grossAnnualRent,
+        cashflowPerUnit: cashflow.cashflowPerUnit,
+        monthlyCashflow: cashflow.monthlyCashflow,
+        dscr: ratios.dscr,
+        capRate: ratios.capRate
+      });
+    }
+    
+    return results;
+  }
+  
+  /**
+   * Calcule les points d'équilibre
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Object} Résultats du calcul des points d'équilibre
+   */
+  static calculateBreakeven(propertyData) {
+    const baseResults = this.calculateLiquidity(propertyData);
+    
+    // 1. Point d'équilibre d'occupation
+    const breakEvenOccupancyRate = this.calculateBreakEvenOccupancyRate(propertyData, baseResults);
+    
+    // 2. Point d'équilibre de loyer
+    const { breakEvenRentPercent, minimumMonthlyRentPerUnit } = this.calculateBreakEvenRent(propertyData, baseResults);
+    
+    // 3. Taux d'intérêt maximum
+    const maxInterestRate = this.calculateMaxInterestRate(propertyData, baseResults);
+    
+    // Calcul des marges de sécurité
+    const occupancyMargin = Math.max(0, 100 - propertyData.vacancyRate - breakEvenOccupancyRate);
+    const rentMargin = Math.max(0, 100 - breakEvenRentPercent);
+    const interestRateMargin = Math.max(0, maxInterestRate - propertyData.interestRate);
+    
     return {
-      currentState: {
-        grossAnnualRent,
-        annualExpenses,
-        annualMortgagePayment,
-        totalAnnualCosts,
-        cashflow: grossAnnualRent - totalAnnualCosts
-      },
       breakEvenPoints: {
-        occupancyRate: parseFloat(breakEvenOccupancyRate.toFixed(2)),
-        rentPercent: parseFloat(breakEvenRentPercent.toFixed(2)),
-        minimumMonthlyRentPerUnit: parseFloat(minimumMonthlyRentPerUnit.toFixed(2)),
-        maxInterestRate: parseFloat(maxInterestRate.toFixed(2))
+        occupancyRate: breakEvenOccupancyRate.toFixed(1),
+        rentPercent: breakEvenRentPercent.toFixed(1),
+        minimumMonthlyRentPerUnit,
+        maxInterestRate: maxInterestRate.toFixed(2)
       },
       safety: {
-        occupancyMargin: parseFloat((100 - breakEvenOccupancyRate).toFixed(2)),
-        rentMargin: parseFloat((100 - breakEvenRentPercent).toFixed(2)),
-        interestRateMargin: parseFloat((maxInterestRate - interestRate).toFixed(2))
+        occupancyMargin: occupancyMargin.toFixed(1),
+        rentMargin: rentMargin.toFixed(1),
+        interestRateMargin: interestRateMargin.toFixed(2)
       }
     };
   }
-
+  
   /**
-   * Analyse les risques d'un investissement immobilier
-   * @param {Object} property - Objet contenant les détails de la propriété
-   * @returns {Object} - Résultats de l'analyse des risques
+   * Calcule le taux d'occupation minimum requis pour atteindre le point d'équilibre
+   * @param {Object} propertyData - Données de la propriété
+   * @param {Object} baseResults - Résultats de base des calculs de liquidité
+   * @returns {Number} Taux d'occupation minimum
    */
-  static analyzeRisks(property) {
-    // Validation des données d'entrée
-    this._validatePropertyData(property);
+  static calculateBreakEvenOccupancyRate(propertyData, baseResults) {
+    const { annualMortgagePayment, annualExpenses } = baseResults.cashflow;
+    const grossAnnualRent = propertyData.grossAnnualRent;
     
-    // Calculs de base
-    const liquidityResults = this.calculateLiquidity(property);
-    const breakEvenResults = this.calculateBreakeven(property);
+    if (grossAnnualRent <= 0) return 100;
     
-    // Évaluation du risque de cashflow
-    const cashflowPerUnit = liquidityResults.cashflow.cashflowPerUnit;
-    let cashflowRisk;
+    // Pour atteindre le point d'équilibre, le revenu après inoccupation doit couvrir les dépenses et l'hypothèque
+    // Revenu * (1 - TauxInoccupation/100) = Dépenses + Hypothèque
+    // TauxInoccupation = (1 - (Dépenses + Hypothèque) / Revenu) * 100
+    const breakEvenVacancyRate = (1 - (annualExpenses + annualMortgagePayment) / grossAnnualRent) * 100;
     
-    if (cashflowPerUnit < 0) {
-      cashflowRisk = { level: 'Élevé', score: 3, description: 'Cashflow négatif' };
-    } else if (cashflowPerUnit < 50) {
-      cashflowRisk = { level: 'Moyen', score: 2, description: 'Cashflow faible, risque en cas d\'imprévus' };
-    } else if (cashflowPerUnit < 100) {
-      cashflowRisk = { level: 'Faible', score: 1, description: 'Cashflow positif mais marge limitée' };
-    } else {
-      cashflowRisk = { level: 'Très faible', score: 0, description: 'Cashflow solide avec bonne marge' };
-    }
+    // Le taux d'occupation minimum est 100% - taux d'inoccupation au point d'équilibre
+    return Math.min(100, Math.max(0, 100 - breakEvenVacancyRate));
+  }
+  
+  /**
+   * Calcule le pourcentage minimum du loyer actuel requis pour atteindre le point d'équilibre
+   * @param {Object} propertyData - Données de la propriété
+   * @param {Object} baseResults - Résultats de base des calculs de liquidité
+   * @returns {Object} Pourcentage du loyer et loyer mensuel minimum par unité
+   */
+  static calculateBreakEvenRent(propertyData, baseResults) {
+    const { annualMortgagePayment } = baseResults.cashflow;
+    const { grossAnnualRent, expenseRatio, vacancyRate, units } = propertyData;
     
-    // Évaluation du risque lié au ratio de couverture du service de la dette (DSCR)
-    const dscr = liquidityResults.ratios.dscr;
-    let dscrRisk;
+    if (grossAnnualRent <= 0) return { breakEvenRentPercent: 100, minimumMonthlyRentPerUnit: 0 };
     
-    if (dscr < 1) {
-      dscrRisk = { level: 'Élevé', score: 3, description: 'DSCR inférieur à 1, revenus insuffisants pour couvrir le prêt' };
-    } else if (dscr < 1.2) {
-      dscrRisk = { level: 'Moyen', score: 2, description: 'DSCR entre 1 et 1.2, marge faible pour les imprévus' };
-    } else if (dscr < 1.5) {
-      dscrRisk = { level: 'Faible', score: 1, description: 'DSCR entre 1.2 et 1.5, marge raisonnable' };
-    } else {
-      dscrRisk = { level: 'Très faible', score: 0, description: 'DSCR supérieur à 1.5, excellente couverture du service de la dette' };
-    }
+    // Pour atteindre le point d'équilibre:
+    // Revenu * (1 - VacancyRate/100) - (Revenu * ExpenseRatio/100) = Hypothèque
+    // Revenu * [(1 - VacancyRate/100) - (ExpenseRatio/100)] = Hypothèque
+    // Revenu = Hypothèque / [(1 - VacancyRate/100) - (ExpenseRatio/100)]
+    const effectiveRate = (1 - vacancyRate/100) - (expenseRatio/100);
     
-    // Évaluation du risque lié au ratio mise de fonds / valeur
-    const lvr = (1 - (property.downPaymentRatio || 0.25)) * 100;
-    let lvrRisk;
+    if (effectiveRate <= 0) return { breakEvenRentPercent: 100, minimumMonthlyRentPerUnit: 0 };
     
-    if (lvr > 80) {
-      lvrRisk = { level: 'Élevé', score: 3, description: 'Ratio prêt/valeur élevé, peu d\'équité dans la propriété' };
-    } else if (lvr > 70) {
-      lvrRisk = { level: 'Moyen', score: 2, description: 'Ratio prêt/valeur modéré' };
-    } else if (lvr > 60) {
-      lvrRisk = { level: 'Faible', score: 1, description: 'Ratio prêt/valeur conservateur' };
-    } else {
-      lvrRisk = { level: 'Très faible', score: 0, description: 'Ratio prêt/valeur très faible, bonne équité' };
-    }
+    const breakEvenAnnualRent = annualMortgagePayment / effectiveRate;
+    const breakEvenRentPercent = (breakEvenAnnualRent / grossAnnualRent) * 100;
     
-    // Évaluation du risque de taux d'inoccupation
-    const occupancyMargin = breakEvenResults.safety.occupancyMargin;
-    let vacancyRisk;
+    // Calcul du loyer mensuel minimum par unité
+    const minimumMonthlyRentPerUnit = units > 0 ? (breakEvenAnnualRent / 12) / units : 0;
     
-    if (occupancyMargin < 5) {
-      vacancyRisk = { level: 'Élevé', score: 3, description: 'Marge d\'inoccupation très faible, risque élevé' };
-    } else if (occupancyMargin < 15) {
-      vacancyRisk = { level: 'Moyen', score: 2, description: 'Marge d\'inoccupation limitée' };
-    } else if (occupancyMargin < 25) {
-      vacancyRisk = { level: 'Faible', score: 1, description: 'Bonne marge d\'inoccupation' };
-    } else {
-      vacancyRisk = { level: 'Très faible', score: 0, description: 'Excellente marge d\'inoccupation' };
-    }
-    
-    // Évaluation du risque de taux d'intérêt
-    const interestRateMargin = breakEvenResults.safety.interestRateMargin;
-    let interestRateRisk;
-    
-    if (interestRateMargin < 1) {
-      interestRateRisk = { level: 'Élevé', score: 3, description: 'Très sensible aux hausses de taux d\'intérêt' };
-    } else if (interestRateMargin < 2) {
-      interestRateRisk = { level: 'Moyen', score: 2, description: 'Sensibilité modérée aux hausses de taux d\'intérêt' };
-    } else if (interestRateMargin < 4) {
-      interestRateRisk = { level: 'Faible', score: 1, description: 'Bonne résistance aux hausses de taux d\'intérêt' };
-    } else {
-      interestRateRisk = { level: 'Très faible', score: 0, description: 'Excellente résistance aux hausses de taux d\'intérêt' };
-    }
-    
-    // Tests de stress
-    const stressTest = {};
-    
-    // Test de stress: augmentation du taux d'intérêt de 3%
-    const interestStressProperty = { ...property, interestRate: property.interestRate + 3 };
-    const interestStressResults = this.calculateLiquidity(interestStressProperty);
-    stressTest.interestRateIncrease3 = {
-      monthlyCashflow: interestStressResults.cashflow.monthlyCashflow,
-      cashflowPerUnit: interestStressResults.cashflow.cashflowPerUnit,
-      dscr: interestStressResults.ratios.dscr
-    };
-    
-    // Test de stress: taux d'inoccupation de 10%
-    const vacancyStressProperty = { ...property, vacancyRate: 10 };
-    const vacancyStressResults = this.calculateLiquidity(vacancyStressProperty);
-    stressTest.vacancy10Percent = {
-      monthlyCashflow: vacancyStressResults.cashflow.monthlyCashflow,
-      cashflowPerUnit: vacancyStressResults.cashflow.cashflowPerUnit,
-      dscr: vacancyStressResults.ratios.dscr
-    };
-    
-    // Test de stress: augmentation des dépenses de 15%
-    const expenseRatio = property.expenseRatio || 40;
-    const expenseStressProperty = { ...property, expenseRatio: expenseRatio + 15 };
-    const expenseStressResults = this.calculateLiquidity(expenseStressProperty);
-    stressTest.expenseIncrease15Percent = {
-      monthlyCashflow: expenseStressResults.cashflow.monthlyCashflow,
-      cashflowPerUnit: expenseStressResults.cashflow.cashflowPerUnit,
-      dscr: expenseStressResults.ratios.dscr
-    };
-    
-    // Test de stress combiné: taux d'intérêt +2%, inoccupation 5%, dépenses +10%
-    const combinedStressProperty = { 
-      ...property, 
-      interestRate: property.interestRate + 2,
-      vacancyRate: 5,
-      expenseRatio: expenseRatio + 10
-    };
-    const combinedStressResults = this.calculateLiquidity(combinedStressProperty);
-    stressTest.combinedStress = {
-      monthlyCashflow: combinedStressResults.cashflow.monthlyCashflow,
-      cashflowPerUnit: combinedStressResults.cashflow.cashflowPerUnit,
-      dscr: combinedStressResults.ratios.dscr
-    };
-    
-    // Calcul du score de risque global (0-3)
-    const riskFactors = [cashflowRisk, dscrRisk, lvrRisk, vacancyRisk, interestRateRisk];
-    const totalRiskScore = riskFactors.reduce((total, risk) => total + risk.score, 0);
-    const maxPossibleScore = riskFactors.length * 3;
-    const riskScoreNormalized = totalRiskScore / maxPossibleScore;
-    
-    let overallRisk;
-    if (riskScoreNormalized < 0.25) {
-      overallRisk = 'Faible';
-    } else if (riskScoreNormalized < 0.5) {
-      overallRisk = 'Modéré';
-    } else if (riskScoreNormalized < 0.75) {
-      overallRisk = 'Élevé';
-    } else {
-      overallRisk = 'Très élevé';
-    }
-    
-    return {
-      riskFactors: {
-        cashflow: cashflowRisk,
-        dscr: dscrRisk,
-        lvr: lvrRisk,
-        vacancy: vacancyRisk,
-        interestRate: interestRateRisk
-      },
-      overallRisk,
-      riskScore: parseFloat((riskScoreNormalized * 100).toFixed(2)),
-      stressTest,
-      recommendations: this._generateRiskRecommendations(riskFactors)
+    return { 
+      breakEvenRentPercent: Math.min(100, Math.max(0, breakEvenRentPercent)),
+      minimumMonthlyRentPerUnit
     };
   }
-
+  
   /**
-   * Génère des recommandations basées sur l'analyse des risques
-   * @param {Array} riskFactors - Facteurs de risque analysés
-   * @returns {Array} - Liste de recommandations
-   * @private
+   * Calcule le taux d'intérêt maximum que peut supporter l'investissement
+   * @param {Object} propertyData - Données de la propriété
+   * @param {Object} baseResults - Résultats de base des calculs de liquidité
+   * @returns {Number} Taux d'intérêt maximum
    */
-  static _generateRiskRecommendations(riskFactors) {
+  static calculateMaxInterestRate(propertyData, baseResults) {
+    const { netOperatingIncome } = baseResults.cashflow;
+    const { purchasePrice, downPaymentRatio, amortizationYears } = propertyData;
+    
+    // Montant du prêt
+    const loanAmount = purchasePrice * (1 - downPaymentRatio);
+    if (loanAmount <= 0 || netOperatingIncome <= 0) return 0;
+    
+    // Nombre de paiements
+    const numberOfPayments = amortizationYears * 12;
+    
+    // Pour trouver le taux d'intérêt maximum, nous devons résoudre l'équation du paiement hypothécaire
+    // pour le taux d'intérêt, en sachant que le paiement annuel maximum est égal au NOI
+    // Ceci est complexe et nécessite une approche itérative
+    
+    // Approche simplifiée: utiliser une recherche binaire pour trouver le taux d'intérêt maximum
+    let low = 0;
+    let high = 50; // Limite supérieure arbitraire de 50%
+    const tolerance = 0.001;
+    
+    while (high - low > tolerance) {
+      const mid = (low + high) / 2;
+      const monthlyInterestRate = mid / 100 / 12;
+      
+      // Calcul du paiement hypothécaire mensuel avec le taux d'intérêt actuel
+      let monthlyMortgagePayment = 0;
+      if (monthlyInterestRate > 0) {
+        monthlyMortgagePayment = loanAmount * 
+          (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, numberOfPayments)) / 
+          (Math.pow(1 + monthlyInterestRate, numberOfPayments) - 1);
+      } else {
+        monthlyMortgagePayment = loanAmount / numberOfPayments;
+      }
+      
+      const annualMortgagePayment = monthlyMortgagePayment * 12;
+      
+      // Si le paiement hypothécaire est supérieur au NOI, le taux est trop élevé
+      if (annualMortgagePayment > netOperatingIncome) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+    }
+    
+    return low;
+  }
+  
+  /**
+   * Analyse les risques de l'investissement
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Object} Résultats de l'analyse des risques
+   */
+  static analyzeRisks(propertyData) {
+    const baseResults = this.calculateLiquidity(propertyData);
+    const { cashflow, ratios } = baseResults;
+    
+    // 1. Identifier les facteurs de risque
+    const riskFactors = {};
+    
+    // Risque lié au cashflow
+    if (cashflow.cashflowPerUnit <= 0) {
+      riskFactors.cashflow = { level: 'Élevé', description: 'Aucun cashflow positif par unité' };
+    } else if (cashflow.cashflowPerUnit < 50) {
+      riskFactors.cashflow = { level: 'Moyen', description: 'Cashflow positif mais faible par unité' };
+    } else {
+      riskFactors.cashflow = { level: 'Faible', description: 'Bon cashflow par unité' };
+    }
+    
+    // Risque lié au DSCR
+    if (ratios.dscr < 1) {
+      riskFactors.dscr = { level: 'Élevé', description: 'Le NOI ne couvre pas le service de la dette' };
+    } else if (ratios.dscr < 1.2) {
+      riskFactors.dscr = { level: 'Moyen', description: 'Couverture du service de la dette limitée' };
+    } else {
+      riskFactors.dscr = { level: 'Faible', description: 'Bonne couverture du service de la dette' };
+    }
+    
+    // Risque lié au ratio prêt/valeur (LVR)
+    const lvr = (1 - propertyData.downPaymentRatio) * 100;
+    if (lvr > 80) {
+      riskFactors.lvr = { level: 'Élevé', description: 'Ratio prêt/valeur élevé' };
+    } else if (lvr > 70) {
+      riskFactors.lvr = { level: 'Moyen', description: 'Ratio prêt/valeur modéré' };
+    } else {
+      riskFactors.lvr = { level: 'Faible', description: 'Ratio prêt/valeur conservateur' };
+    }
+    
+    // Risque lié au taux d'inoccupation
+    if (propertyData.vacancyRate > 8) {
+      riskFactors.vacancy = { level: 'Élevé', description: 'Taux d\'inoccupation élevé' };
+    } else if (propertyData.vacancyRate > 5) {
+      riskFactors.vacancy = { level: 'Moyen', description: 'Taux d\'inoccupation modéré' };
+    } else {
+      riskFactors.vacancy = { level: 'Faible', description: 'Taux d\'inoccupation faible' };
+    }
+    
+    // Risque lié au taux d'intérêt
+    if (propertyData.interestRate > 5) {
+      riskFactors.interestRate = { level: 'Élevé', description: 'Taux d\'intérêt élevé' };
+    } else if (propertyData.interestRate > 3.5) {
+      riskFactors.interestRate = { level: 'Moyen', description: 'Taux d\'intérêt modéré' };
+    } else {
+      riskFactors.interestRate = { level: 'Faible', description: 'Taux d\'intérêt faible' };
+    }
+    
+    // 2. Calculer un score de risque global
+    const riskLevels = {
+      'Élevé': 3,
+      'Moyen': 2,
+      'Faible': 1
+    };
+    
+    let totalRiskScore = 0;
+    let maxPossibleScore = 0;
+    
+    for (const factor in riskFactors) {
+      totalRiskScore += riskLevels[riskFactors[factor].level];
+      maxPossibleScore += 3; // 3 est le score maximum pour un facteur (niveau Élevé)
+    }
+    
+    const riskScorePercentage = (totalRiskScore / maxPossibleScore) * 100;
+    
+    // Déterminer le niveau de risque global
+    let overallRisk;
+    if (riskScorePercentage >= 70) {
+      overallRisk = 'Élevé';
+    } else if (riskScorePercentage >= 40) {
+      overallRisk = 'Modéré';
+    } else {
+      overallRisk = 'Faible';
+    }
+    
+    // 3. Générer des recommandations
     const recommendations = [];
     
-    // Recommandations basées sur le risque de cashflow
-    if (riskFactors.cashflow.score >= 2) {
-      recommendations.push('Augmenter le cashflow en optimisant les revenus ou en réduisant les dépenses');
+    if (riskFactors.cashflow.level === 'Élevé') {
+      recommendations.push('Augmenter les loyers ou réduire les dépenses pour améliorer le cashflow');
     }
     
-    // Recommandations basées sur le DSCR
-    if (riskFactors.dscr.score >= 2) {
-      recommendations.push('Améliorer le ratio de couverture du service de la dette en refinançant à un taux plus bas ou en augmentant la mise de fonds');
+    if (riskFactors.dscr.level === 'Élevé') {
+      recommendations.push('Augmenter la mise de fonds pour réduire les paiements hypothécaires');
     }
     
-    // Recommandations basées sur le LVR
-    if (riskFactors.lvr.score >= 2) {
-      recommendations.push('Réduire le ratio prêt/valeur en augmentant la mise de fonds');
+    if (riskFactors.lvr.level === 'Élevé') {
+      recommendations.push('Envisager une mise de fonds plus importante pour réduire le ratio prêt/valeur');
     }
     
-    // Recommandations basées sur le risque d'inoccupation
-    if (riskFactors.vacancy.score >= 2) {
-      recommendations.push('Améliorer la résistance aux périodes d\'inoccupation en constituant une réserve de trésorerie');
+    if (riskFactors.vacancy.level === 'Élevé') {
+      recommendations.push('Vérifier les tendances locatives dans la région et envisager des améliorations pour réduire l\'inoccupation');
     }
     
-    // Recommandations basées sur le risque de taux d'intérêt
-    if (riskFactors.interestRate.score >= 2) {
-      recommendations.push('Se protéger contre les hausses de taux d\'intérêt en optant pour un taux fixe à plus long terme');
-    }
+    // 4. Effectuer des tests de stress
+    const stressTest = this.performStressTests(propertyData);
     
-    // Recommandations générales si le risque global est élevé
-    const highRiskFactors = riskFactors.filter(factor => factor.score >= 2).length;
-    if (highRiskFactors >= 3) {
-      recommendations.push('Reconsidérer l\'investissement ou négocier un prix d\'achat plus bas pour améliorer la rentabilité et réduire le risque global');
-    }
+    return {
+      riskFactors,
+      riskScore: Math.round(riskScorePercentage),
+      overallRisk,
+      recommendations,
+      stressTest
+    };
+  }
+  
+  /**
+   * Effectue des tests de stress sur l'investissement
+   * @param {Object} propertyData - Données de la propriété
+   * @returns {Object} Résultats des tests de stress
+   */
+  static performStressTests(propertyData) {
+    // 1. Taux d'intérêt +3%
+    const interestRateStressData = { ...propertyData };
+    interestRateStressData.interestRate += 3;
+    const interestRateStressResults = this.calculateLiquidity(interestRateStressData);
     
-    return recommendations;
+    // 2. Taux d'inoccupation de 10%
+    const vacancyStressData = { ...propertyData };
+    vacancyStressData.vacancyRate = 10;
+    const vacancyStressResults = this.calculateLiquidity(vacancyStressData);
+    
+    // 3. Augmentation des dépenses de 15%
+    const expenseStressData = { ...propertyData };
+    expenseStressData.expenseRatio += 15;
+    const expenseStressResults = this.calculateLiquidity(expenseStressData);
+    
+    // 4. Combinaison de stress (intérêt +2%, inoccupation 5%, dépenses +10%)
+    const combinedStressData = { ...propertyData };
+    combinedStressData.interestRate += 2;
+    combinedStressData.vacancyRate = Math.max(5, combinedStressData.vacancyRate);
+    combinedStressData.expenseRatio += 10;
+    const combinedStressResults = this.calculateLiquidity(combinedStressData);
+    
+    return {
+      interestRateIncrease3: {
+        cashflowPerUnit: interestRateStressResults.cashflow.cashflowPerUnit,
+        dscr: interestRateStressResults.ratios.dscr,
+        interestRate: interestRateStressData.interestRate
+      },
+      vacancy10Percent: {
+        cashflowPerUnit: vacancyStressResults.cashflow.cashflowPerUnit,
+        dscr: vacancyStressResults.ratios.dscr,
+        vacancyRate: vacancyStressData.vacancyRate
+      },
+      expenseIncrease15Percent: {
+        cashflowPerUnit: expenseStressResults.cashflow.cashflowPerUnit,
+        dscr: expenseStressResults.ratios.dscr,
+        expenseRatio: expenseStressData.expenseRatio
+      },
+      combinedStress: {
+        cashflowPerUnit: combinedStressResults.cashflow.cashflowPerUnit,
+        dscr: combinedStressResults.ratios.dscr,
+        interestRate: combinedStressData.interestRate,
+        vacancyRate: combinedStressData.vacancyRate,
+        expenseRatio: combinedStressData.expenseRatio
+      }
+    };
   }
 }
 
-module.exports = LiquidityCalculatorUtility;
+export default LiquidityCalculatorUtility;
