@@ -1,4 +1,4 @@
-const ScenarioComparisonUtility = require('../calculators/detailed/ScenarioComparisonUtility');
+const ScenarioComparisonUtility = require('../calculators/utilities/ScenarioComparisonUtility');
 
 describe('ScenarioComparisonUtility', () => {
   test('devrait pouvoir comparer deux scénarios FLIP', () => {
