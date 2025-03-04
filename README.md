@@ -1,51 +1,118 @@
 # ImmoInvestPro
 
-Application web pour l'analyse et l'évaluation d'investissements immobiliers au Québec, basée sur les méthodes éprouvées des investisseurs professionnels.
+## Plateforme d'analyse et de suivi d'investissements immobiliers au Québec
 
-![Status](https://img.shields.io/badge/status-en%20développement-yellow)
-![Version](https://img.shields.io/badge/version-0.1%20alpha-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+ImmoInvestPro est une application complète d'analyse et de suivi d'investissements immobiliers spécifiquement adaptée au marché québécois. Elle permet aux investisseurs de tous niveaux d'analyser rapidement les opportunités, de détecter des optimisations potentielles et de suivre leurs projets.
 
-## Aperçu
+## Caractéristiques principales
 
-ImmoInvestPro est une application conçue pour guider les investisseurs immobiliers débutants et intermédiaires à travers le processus d'analyse, d'acquisition et de gestion de propriétés au Québec. Elle intègre les meilleures pratiques et méthodologies utilisées par les investisseurs professionnels.
+### Analyse rapide avec calculateurs Napkin
+- **FLIP (FIP10)**: Analysez rapidement la rentabilité des projets d'achat-rénovation-revente
+- **MULTI (PAR)**: Évaluez le potentiel des immeubles locatifs en quelques secondes
 
-### Fonctionnalités principales
+### Détection d'opportunités cachées
+- Identification automatique d'optimisations potentielles
+- Analyse des changements de vocation possibles
+- Détection de potentiel de densification
 
-- 🏠 **Mode FLIP** - Analyse et suivi d'investissements en rénovation-revente
-- 🏢 **Mode MULTI** - Analyse et gestion d'immeubles à revenus
-- 🧮 **Calculateurs Napkin** - Évaluation rapide d'opportunités (FIP10 et méthode PAR)
-- 📊 **Calculateurs détaillés** - Suite complète d'outils financiers spécialisés
-- 📑 **Analyse automatique** - Extraction des données depuis les fiches descriptives
-- ⭐ **Système de scoring** - Évaluation standardisée des opportunités
-- 📝 **Générateur de clauses** - Assistance pour les promesses d'achat
+### Tableau de bord personnalisé
+- Vue d'ensemble de votre portefeuille
+- Suivi des étapes de chaque projet
+- Organisation par type de projet (FLIP/MULTI)
 
-## Roadmap
+### Roadmaps détaillées
+- Guides pas à pas pour les projets FLIP et MULTI
+- Gestion des tâches par étape
+- Centralisation des documents importants
 
-| Phase | Fonctionnalités | Statut |
-|-------|-----------------|--------|
-| MVP | Calculateurs Napkin, Extraction basique, Interface simplifiée | 🟡 En cours |
-| 1.0 | Calculateurs financiers complets, Système de scoring, Simulateur | 📅 Prévu |
-| 2.0 | Calculateurs de rénovation, Générateur de clauses, Données de marché | 📅 Prévu |
+## Modèle Freemium
 
-## Documentation
+### Version gratuite
+- Calculateurs Napkin limités (5 analyses/mois)
+- Analyse basique des fiches descriptives
+- Dashboards limités (2 deals maximum)
+- Score de rentabilité de base
 
-- [Guide utilisateur](./docs/user/README.md)
-- [Documentation technique](./docs/technical/README.md)
-- [Calculateurs disponibles](./docs/user/calculators.md)
+### Version premium
+- Calculateurs financiers complets et illimités
+- Analyses avancées d'optimisation
+- Dashboard illimité avec organisation par portefeuille
+- Simulateur de scénarios
+- Exportation de rapports professionnels
+- Générateur de clauses légales personnalisées
+- Alertes personnalisées pour les nouvelles opportunités
 
-## Installation et utilisation
+## Architecture technique
 
-*Instructions d'installation à venir*
+Le projet est structuré comme suit:
 
-## Avertissement
+```
+immoinvestpro/
+├── backend/                  # API et logique métier
+│   ├── auth/                 # Authentification et gestion des utilisateurs
+│   ├── calculators/          # Calculateurs financiers
+│   ├── opportunity_finder/   # Détection d'opportunités cachées
+│   ├── recommendation_engine/# Moteur de recommandations
+│   ├── project_tracker/      # Suivi des projets
+│   └── user/                 # Gestion des utilisateurs et préférences
+├── frontend/                 # Interface utilisateur
+│   ├── auth/                 # Pages d'authentification
+│   ├── dashboard/            # Tableau de bord
+│   ├── deal_analyzer/        # Interface d'analyse
+│   ├── project/              # Gestion de projets
+│   └── subscription/         # Pages d'abonnement
+├── shared/                   # Code partagé frontend/backend
+└── config/                   # Configuration du projet
+```
 
-Les informations et calculs fournis par cette application sont à titre indicatif seulement et ne constituent pas des conseils financiers, juridiques ou immobiliers professionnels. Consultez toujours des professionnels qualifiés avant de prendre des décisions d'investissement.
+## Workflow utilisateur typique
 
-## Contribution
+1. **Phase initiale (gratuite)**:
+   - L'utilisateur crée un compte
+   - Il soumet l'URL d'une fiche descriptive Centris/DuProprio
+   - Le système analyse rapidement le bien avec les calculateurs Napkin
+   - L'application indique si l'opportunité vaut la peine d'être explorée davantage
 
-Les contributions sont les bienvenues! Consultez [CONTRIBUTING.md](./CONTRIBUTING.md) pour les directives de contribution.
+2. **Phase d'exploration (partiellement gratuite)**:
+   - Le système suggère des optimisations potentielles
+   - L'utilisateur peut sauvegarder le projet dans son dashboard
+   - Le système génère une roadmap personnalisée pour le projet
+
+3. **Phase d'analyse approfondie (premium)**:
+   - Accès aux calculateurs détaillés
+   - Simulation de différents scénarios d'optimisation
+   - Génération de rapports pour présentation à des partenaires ou financiers
+   - Suivi détaillé des étapes d'acquisition
+
+## Installation et développement
+
+### Prérequis
+- Node.js (v14+)
+- MongoDB
+- NPM ou Yarn
+
+### Installation
+1. Cloner le dépôt
+```
+git clone https://github.com/yoprobotics/ImmoInvestPro.git
+cd ImmoInvestPro
+```
+
+2. Installer les dépendances
+```
+npm install
+```
+
+3. Configurer les variables d'environnement
+```
+cp .env.example .env
+```
+Éditez le fichier `.env` avec vos propres paramètres.
+
+4. Lancer l'application en mode développement
+```
+npm run dev
+```
 
 ## Licence
-
-Ce projet est sous licence MIT - voir le fichier [LICENSE](./LICENSE) pour plus de détails.
+Ce projet est sous licence propriétaire. Tous droits réservés.
