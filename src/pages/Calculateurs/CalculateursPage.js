@@ -58,7 +58,7 @@ const CalculateursPage = () => {
           <button
             className={`px-6 py-3 text-center ${
               activeCalculator === 'flip'
-                ? 'border-b-2 border-blue-500 text-blue-600 font-medium'
+                ? 'border-b-2 border-green-500 text-green-600 font-medium'
                 : 'text-gray-600 hover:text-gray-800'
             }`}
             onClick={() => setActiveCalculator('flip')}
@@ -98,6 +98,7 @@ const CalculateursPage = () => {
                   <button
                     onClick={() => handleDeleteAnalysis(activeCalculator, analysis.id)}
                     className="text-red-500 hover:text-red-700"
+                    aria-label="Supprimer l'analyse"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -118,13 +119,13 @@ const CalculateursPage = () => {
                   <>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="text-gray-600">Prix d'achat:</div>
-                      <div className="font-medium text-right">{analysis.formValues.prixAchat} $</div>
+                      <div className="font-medium text-right">{Number(analysis.formValues.prixAchat).toLocaleString('fr-CA')} $</div>
                       
                       <div className="text-gray-600">Nombre d'appartements:</div>
                       <div className="font-medium text-right">{analysis.formValues.nombreAppartements}</div>
                       
                       <div className="text-gray-600">Revenus bruts:</div>
-                      <div className="font-medium text-right">{analysis.formValues.revenusBruts} $</div>
+                      <div className="font-medium text-right">{Number(analysis.formValues.revenusBruts).toLocaleString('fr-CA')} $</div>
                       
                       <div className="text-gray-600">Liquidité par porte/mois:</div>
                       <div className={`font-bold text-right ${
@@ -145,33 +146,39 @@ const CalculateursPage = () => {
                   <>
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="text-gray-600">Prix final:</div>
-                      <div className="font-medium text-right">{analysis.formValues.prixFinal} $</div>
+                      <div className="font-medium text-right">{Number(analysis.formValues.prixFinal).toLocaleString('fr-CA')} $</div>
                       
-                      <div className="text-gray-600">Prix initial:</div>
-                      <div className="font-medium text-right">{analysis.formValues.prixInitial} $</div>
-                      
-                      <div className="text-gray-600">Coût des rénovations:</div>
-                      <div className="font-medium text-right">{analysis.formValues.prixRenovations} $</div>
-                      
-                      {analysis.results.profit !== undefined ? (
+                      {analysis.results.modeCalcul === 'profit' ? (
                         <>
+                          <div className="text-gray-600">Prix initial:</div>
+                          <div className="font-medium text-right">{Number(analysis.formValues.prixInitial).toLocaleString('fr-CA')} $</div>
+                          
+                          <div className="text-gray-600">Coût des rénovations:</div>
+                          <div className="font-medium text-right">{Number(analysis.formValues.prixRenovations).toLocaleString('fr-CA')} $</div>
+                          
                           <div className="text-gray-600">Profit:</div>
                           <div className={`font-bold text-right ${
                             analysis.results.profitSuffisant ? 'text-green-600' : 'text-red-600'
                           }`}>
-                            {analysis.results.profit.toFixed(2)} $
+                            {analysis.results.profit.toLocaleString('fr-CA')} $
                           </div>
                         </>
                       ) : (
                         <>
+                          <div className="text-gray-600">Coût des rénovations:</div>
+                          <div className="font-medium text-right">{Number(analysis.formValues.prixRenovations).toLocaleString('fr-CA')} $</div>
+                          
+                          <div className="text-gray-600">Profit visé:</div>
+                          <div className="font-medium text-right">{Number(analysis.formValues.profitVise).toLocaleString('fr-CA')} $</div>
+                          
                           <div className="text-gray-600">Prix d'offre max:</div>
-                          <div className="font-bold text-right text-blue-600">
-                            {analysis.results.prixOffreMaximum.toFixed(2)} $
+                          <div className="font-bold text-right text-green-600">
+                            {analysis.results.prixOffreMaximum.toLocaleString('fr-CA')} $
                           </div>
                         </>
                       )}
                     </div>
-                    {analysis.results.profit !== undefined && (
+                    {analysis.results.modeCalcul === 'profit' && (
                       <div className="mt-4 text-center">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                           analysis.results.profitSuffisant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
