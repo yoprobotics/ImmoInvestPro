@@ -1,419 +1,205 @@
 /**
- * Calculateur Napkin
+ * Calculateur Napkin pour analyse rapide de projets immobiliers
  * 
- * Ce module implémente les calculateurs rapides selon la méthode des Secrets de l'Immobilier.
- * Il permet d'évaluer rapidement la rentabilité d'un projet immobilier avec très peu de données.
+ * Ce module implémente les méthodes "Napkin" des Secrets de l'Immobilier
+ * pour FLIP et MULTI, permettant d'évaluer rapidement la rentabilité
+ * potentielle d'un investissement immobilier.
+ */
+
+/**
+ * Constante pour le pourcentage des frais dans le calcul Napkin FLIP
+ * @type {number}
+ */
+const FLIP_EXPENSE_PERCENTAGE = 10;
+
+/**
+ * Constante pour le cashflow cible par porte dans les projets MULTI
+ * @type {number}
+ */
+const TARGET_CASHFLOW_PER_DOOR = 75;
+
+/**
+ * Calcule la rentabilité potentielle d'un projet FLIP selon la méthode FIP10 (Napkin)
  * 
- * Deux méthodes principales:
- * 1. Napkin FLIP (FIP10) - Pour les projets de type achat-revente (flip)
- * 2. Napkin MULTI (PAR + HIGH-5) - Pour les immeubles à revenus
- */
-
-/**
- * Structure des entrées pour le calculateur Napkin FLIP
- * @typedef {Object} NapkinFlipInput
- * @property {number} finalPrice - Prix final (valeur de revente estimée)
- * @property {number} initialPrice - Prix initial (prix d'achat)
- * @property {number} renovationCost - Coût des rénovations
- */
-
-/**
- * Structure des résultats pour le calculateur Napkin FLIP
- * @typedef {Object} NapkinFlipResult
- * @property {number} profit - Profit net estimé
- * @property {boolean} isViable - Indique si le projet est viable (profit >= seuil minimum)
- * @property {string} rating - Évaluation du projet (EXCELLENT, GOOD, ACCEPTABLE, POOR)
- * @property {string} recommendation - Recommandation basée sur l'analyse
- */
-
-/**
- * Structure des entrées pour le calculateur Napkin MULTI
- * @typedef {Object} NapkinMultiInput
- * @property {number} purchasePrice - Prix d'achat
- * @property {number} units - Nombre d'unités (portes)
- * @property {number} grossRevenue - Revenus bruts annuels
- */
-
-/**
- * Structure des résultats pour le calculateur Napkin MULTI
- * @typedef {Object} NapkinMultiResult
- * @property {number} cashflow - Liquidité annuelle
- * @property {number} cashflowPerUnit - Liquidité par porte par mois
- * @property {boolean} isViable - Indique si le projet est viable (cashflow par porte >= seuil minimum)
- * @property {string} rating - Évaluation du projet (EXCELLENT, GOOD, ACCEPTABLE, POOR)
- * @property {string} recommendation - Recommandation basée sur l'analyse
- */
-
-/**
- * Seuils de rentabilité pour les projets FLIP
- * @const {Object}
- */
-const FLIP_THRESHOLDS = {
-  MINIMUM: 15000,   // Seuil minimum acceptable pour un profit ($/projet)
-  TARGET: 25000,    // Seuil cible pour un bon profit ($/projet)
-  EXCELLENT: 40000  // Seuil excellent pour un profit ($/projet)
-};
-
-/**
- * Seuils de rentabilité pour les projets MULTI
- * @const {Object}
- */
-const MULTI_THRESHOLDS = {
-  MINIMUM: 50,   // Seuil minimum acceptable pour un cashflow par porte ($/mois)
-  TARGET: 75,    // Seuil cible pour un bon cashflow par porte ($/mois)
-  EXCELLENT: 100 // Seuil excellent pour un cashflow par porte ($/mois)
-};
-
-/**
- * Pourcentages de dépenses par rapport aux revenus bruts, selon le nombre d'unités
- * @const {Object}
- */
-const EXPENSE_RATIOS = {
-  SMALL: 0.30,  // 1-2 logements = 30% du revenu brut
-  MEDIUM: 0.35, // 3-4 logements = 35% du revenu brut
-  LARGE: 0.45,  // 5-6 logements = 45% du revenu brut
-  XLARGE: 0.50  // 7+ logements = 50% du revenu brut
-};
-
-/**
- * Calculateur Napkin FLIP - Méthode FIP10
+ * Cette méthode utilise trois données principales:
+ * - Prix Final (valeur de revente)
+ * - Prix Initial (prix d'achat)
+ * - Prix des rénovations
  * 
- * Cette méthode utilise la formule:
- * Prix Final - Prix Initial - Prix des Rénovations - 10% de la valeur de revente = Profit
- * 
- * @param {NapkinFlipInput} input - Données d'entrée pour le calcul
- * @returns {NapkinFlipResult} - Résultats de l'analyse
+ * @param {Object} input Données d'entrée pour le calcul
+ * @param {number} input.finalPrice Valeur estimée après rénovation (prix de revente)
+ * @param {number} input.initialPrice Prix d'achat initial
+ * @param {number} input.renovationCost Coût estimé des rénovations
+ * @param {number} [input.expensePercentage=10] Pourcentage des frais d'acquisition et possession (par défaut 10%)
+ * @returns {Object} Résultats du calcul Napkin FLIP
  */
 function calculateNapkinFlip(input) {
   // Validation des entrées
-  validateFlipInput(input);
+  if (!input.finalPrice || !input.initialPrice || input.renovationCost === undefined) {
+    throw new Error('Les prix final, initial et le coût des rénovations sont obligatoires');
+  }
+
+  const expensePercentage = input.expensePercentage || FLIP_EXPENSE_PERCENTAGE;
   
-  // Extraction des valeurs
-  const { finalPrice, initialPrice, renovationCost } = input;
+  // Calcul selon la méthode FIP10
+  const expenses = input.finalPrice * (expensePercentage / 100);
+  const profit = input.finalPrice - input.initialPrice - input.renovationCost - expenses;
   
-  // Calcul du profit selon la méthode FIP10
-  const expenses = finalPrice * 0.1; // 10% de la valeur de revente pour couvrir frais et taxes
-  const profit = finalPrice - initialPrice - renovationCost - expenses;
+  // Calcul du retour sur investissement (ROI)
+  const investment = input.initialPrice + input.renovationCost;
+  const roi = investment > 0 ? (profit / investment) * 100 : 0;
   
-  // Évaluation du projet
-  const isViable = profit >= FLIP_THRESHOLDS.MINIMUM;
-  const rating = getFlipRating(profit);
-  const recommendation = generateFlipRecommendation(profit, isViable);
+  // Calcul du prix d'achat maximum pour un profit cible
+  const calculateMaxBidPrice = (targetProfit) => {
+    return input.finalPrice - input.renovationCost - expenses - targetProfit;
+  };
+  
+  // Prix d'achat maximum pour un profit de 25000$
+  const maxBidPrice = calculateMaxBidPrice(25000);
   
   return {
-    profit: roundToTwo(profit),
-    isViable,
-    rating,
-    recommendation,
-    breakdown: {
-      finalPrice: roundToTwo(finalPrice),
-      initialPrice: roundToTwo(initialPrice),
-      renovationCost: roundToTwo(renovationCost),
-      expenses: roundToTwo(expenses),
-      total: roundToTwo(profit)
-    }
+    finalPrice: input.finalPrice,
+    initialPrice: input.initialPrice,
+    renovationCost: input.renovationCost,
+    expenses: expenses,
+    profit: profit,
+    roi: roi,
+    maxBidPrice: maxBidPrice,
+    isViable: profit >= 25000, // Seuil de rentabilité recommandé
+    recommendation: getFlipRecommendation(profit, roi)
   };
 }
 
 /**
- * Calculateur Napkin MULTI - Méthode PAR + HIGH-5
+ * Génère une recommandation pour un projet FLIP
  * 
- * Cette méthode utilise:
- * 1. PAR (Prix d'achat, Appartements, Revenus bruts)
- * 2. HIGH-5 (0.5% du prix d'achat par mois pour estimer le paiement hypothécaire)
+ * @param {number} profit Profit estimé
+ * @param {number} roi Retour sur investissement
+ * @returns {string} Recommandation
+ */
+function getFlipRecommendation(profit, roi) {
+  if (profit < 0) {
+    return "Ce projet génère une perte. Il est fortement déconseillé d'y investir sans modification substantielle du prix d'achat ou des coûts de rénovation.";
+  } else if (profit < 25000) {
+    return `Ce projet génère un profit de ${profit.toFixed(2)}$, ce qui est inférieur au seuil minimal recommandé de 25000$. Négociez un meilleur prix d'achat ou réduisez les coûts de rénovation.`;
+  } else if (profit < 40000) {
+    return `Ce projet génère un profit acceptable de ${profit.toFixed(2)}$ avec un ROI de ${roi.toFixed(2)}%. Analysez plus en détail pour confirmer la viabilité.`;
+  } else {
+    return `Ce projet est excellent avec un profit estimé de ${profit.toFixed(2)}$ et un ROI de ${roi.toFixed(2)}%. Recommandé pour investissement après analyse détaillée.`;
+  }
+}
+
+/**
+ * Calcule rapidement la rentabilité d'un immeuble à revenus selon la méthode Napkin PAR + HIGH-5
  * 
- * @param {NapkinMultiInput} input - Données d'entrée pour le calcul
- * @returns {NapkinMultiResult} - Résultats de l'analyse
+ * Cette méthode utilise trois données principales:
+ * - Prix d'achat
+ * - Nombre d'Appartements (unités)
+ * - Revenus bruts
+ * 
+ * @param {Object} input Données d'entrée pour le calcul
+ * @param {number} input.purchasePrice Prix d'achat de l'immeuble
+ * @param {number} input.unitCount Nombre d'unités (portes)
+ * @param {number} input.grossIncome Revenus bruts annuels
+ * @param {number} [input.targetCashflowPerDoor=75] Cashflow cible par porte par mois
+ * @returns {Object} Résultats du calcul Napkin MULTI
  */
 function calculateNapkinMulti(input) {
   // Validation des entrées
-  validateMultiInput(input);
+  if (!input.purchasePrice || !input.unitCount || !input.grossIncome) {
+    throw new Error('Le prix d\'achat, le nombre d\'unités et les revenus bruts sont obligatoires');
+  }
+
+  const targetCashflowPerDoor = input.targetCashflowPerDoor || TARGET_CASHFLOW_PER_DOOR;
   
-  // Extraction des valeurs
-  const { purchasePrice, units, grossRevenue } = input;
-  
-  // Détermination du ratio de dépenses selon le nombre d'unités
-  let expenseRatio;
-  if (units <= 2) {
-    expenseRatio = EXPENSE_RATIOS.SMALL;
-  } else if (units <= 4) {
-    expenseRatio = EXPENSE_RATIOS.MEDIUM;
-  } else if (units <= 6) {
-    expenseRatio = EXPENSE_RATIOS.LARGE;
+  // Déterminer le pourcentage de dépenses selon le nombre d'unités
+  let expensePercentage;
+  if (input.unitCount <= 2) {
+    expensePercentage = 30;
+  } else if (input.unitCount <= 4) {
+    expensePercentage = 35;
+  } else if (input.unitCount <= 6) {
+    expensePercentage = 45;
   } else {
-    expenseRatio = EXPENSE_RATIOS.XLARGE;
+    expensePercentage = 50;
   }
   
   // Calcul des dépenses
-  const expenses = grossRevenue * expenseRatio;
+  const expenses = input.grossIncome * (expensePercentage / 100);
   
-  // Calcul du revenu net d'exploitation (RNE)
-  const noi = grossRevenue - expenses;
+  // Calcul du revenu net d'exploitation (NOI)
+  const netOperatingIncome = input.grossIncome - expenses;
   
-  // Calcul du paiement hypothécaire selon la méthode HIGH-5
-  const monthlyMortgagePayment = purchasePrice * 0.005;
-  const annualMortgagePayment = monthlyMortgagePayment * 12;
+  // Estimation des paiements hypothécaires avec la méthode HIGH-5
+  const mortgagePayments = input.purchasePrice * 0.005 * 12;
   
   // Calcul du cashflow
-  const cashflow = noi - annualMortgagePayment;
+  const cashflow = netOperatingIncome - mortgagePayments;
   
   // Calcul du cashflow par porte par mois
-  const cashflowPerUnit = cashflow / units / 12;
+  const cashflowPerDoor = cashflow / input.unitCount / 12;
   
-  // Évaluation du projet
-  const isViable = cashflowPerUnit >= MULTI_THRESHOLDS.MINIMUM;
-  const rating = getMultiRating(cashflowPerUnit);
-  const recommendation = generateMultiRecommendation(cashflowPerUnit, isViable);
+  // Calcul du prix d'achat maximum pour atteindre le cashflow cible
+  const calculateMaxPurchasePrice = (targetMonthlyPerDoor) => {
+    // Cashflow annuel cible
+    const targetAnnualCashflow = targetMonthlyPerDoor * input.unitCount * 12;
+    
+    // Financements maximum disponible
+    const maxFinancing = netOperatingIncome - targetAnnualCashflow;
+    
+    // Prix d'achat maximum (formule inversée de HIGH-5)
+    return maxFinancing / 0.06; // 0.005 * 12 = 0.06
+  };
+  
+  const maxPurchasePrice = calculateMaxPurchasePrice(targetCashflowPerDoor);
+  
+  // Calcul du taux de capitalisation
+  const capRate = (netOperatingIncome / input.purchasePrice) * 100;
+  
+  // Calcul du multiplicateur de revenu brut (GRM)
+  const grm = input.purchasePrice / input.grossIncome;
   
   return {
-    cashflow: roundToTwo(cashflow),
-    cashflowPerUnit: roundToTwo(cashflowPerUnit),
-    isViable,
-    rating,
-    recommendation,
-    breakdown: {
-      grossRevenue: roundToTwo(grossRevenue),
-      expenses: roundToTwo(expenses),
-      noi: roundToTwo(noi),
-      annualMortgagePayment: roundToTwo(annualMortgagePayment),
-      cashflow: roundToTwo(cashflow)
-    }
+    purchasePrice: input.purchasePrice,
+    unitCount: input.unitCount,
+    grossIncome: input.grossIncome,
+    expenses: expenses,
+    expensePercentage: expensePercentage,
+    netOperatingIncome: netOperatingIncome,
+    mortgagePayments: mortgagePayments,
+    cashflow: cashflow,
+    cashflowPerDoor: cashflowPerDoor,
+    capRate: capRate,
+    grm: grm,
+    maxPurchasePrice: maxPurchasePrice,
+    isViable: cashflowPerDoor >= targetCashflowPerDoor,
+    recommendation: getMultiRecommendation(cashflowPerDoor, targetCashflowPerDoor, capRate)
   };
 }
 
 /**
- * Calcule le prix d'offre maximum pour un projet FLIP avec un profit cible
- * @param {Object} params - Paramètres pour le calcul
- * @param {number} params.finalPrice - Prix final (valeur de revente estimée)
- * @param {number} params.renovationCost - Coût des rénovations
- * @param {number} [params.targetProfit] - Profit cible (par défaut: 25000)
- * @returns {number} - Prix d'offre maximum recommandé
+ * Génère une recommandation pour un projet MULTI
+ * 
+ * @param {number} cashflowPerDoor Cashflow par porte par mois
+ * @param {number} targetCashflowPerDoor Cashflow cible par porte par mois
+ * @param {number} capRate Taux de capitalisation
+ * @returns {string} Recommandation
  */
-function calculateMaxOfferPriceFlip(params) {
-  // Validation des entrées
-  if (!params.finalPrice || params.finalPrice <= 0) {
-    throw new Error("Le prix final doit être un nombre positif");
-  }
-  
-  if (params.renovationCost === undefined || params.renovationCost < 0) {
-    throw new Error("Le coût des rénovations doit être spécifié et être un nombre positif ou zéro");
-  }
-  
-  const targetProfit = params.targetProfit || FLIP_THRESHOLDS.TARGET;
-  const expenses = params.finalPrice * 0.1; // 10% de la valeur de revente
-  
-  // Calcul du prix d'offre maximum: Prix Final - Rénovations - 10% - Profit cible
-  const maxOfferPrice = params.finalPrice - params.renovationCost - expenses - targetProfit;
-  
-  if (maxOfferPrice <= 0) {
-    throw new Error("Impossible d'atteindre le profit cible avec ces paramètres. Le projet n'est pas viable aux prix actuels.");
-  }
-  
-  return roundToTwo(maxOfferPrice);
-}
-
-/**
- * Calcule le prix d'offre maximum pour un immeuble MULTI avec un cashflow cible par porte
- * @param {Object} params - Paramètres pour le calcul
- * @param {number} params.units - Nombre d'unités (portes)
- * @param {number} params.grossRevenue - Revenus bruts annuels
- * @param {number} [params.targetCashflowPerUnit] - Cashflow cible par porte par mois (par défaut: 75)
- * @returns {number} - Prix d'offre maximum recommandé
- */
-function calculateMaxOfferPriceMulti(params) {
-  // Validation des entrées
-  if (!params.units || params.units <= 0 || !Number.isInteger(params.units)) {
-    throw new Error("Le nombre d'unités doit être un entier positif");
-  }
-  
-  if (!params.grossRevenue || params.grossRevenue <= 0) {
-    throw new Error("Les revenus bruts doivent être un nombre positif");
-  }
-  
-  const targetCashflowPerUnit = params.targetCashflowPerUnit || MULTI_THRESHOLDS.TARGET;
-  
-  // Détermination du ratio de dépenses selon le nombre d'unités
-  let expenseRatio;
-  if (params.units <= 2) {
-    expenseRatio = EXPENSE_RATIOS.SMALL;
-  } else if (params.units <= 4) {
-    expenseRatio = EXPENSE_RATIOS.MEDIUM;
-  } else if (params.units <= 6) {
-    expenseRatio = EXPENSE_RATIOS.LARGE;
+function getMultiRecommendation(cashflowPerDoor, targetCashflowPerDoor, capRate) {
+  if (cashflowPerDoor < 0) {
+    return "Ce projet génère un cashflow négatif. Il est fortement déconseillé d'y investir sans modification substantielle du prix d'achat ou des revenus.";
+  } else if (cashflowPerDoor < 50) {
+    return `Ce projet génère seulement ${cashflowPerDoor.toFixed(2)}$ par porte par mois, ce qui est insuffisant. Le minimum acceptable est de 50$ et la cible est de ${targetCashflowPerDoor}$.`;
+  } else if (cashflowPerDoor < targetCashflowPerDoor) {
+    return `Ce projet génère ${cashflowPerDoor.toFixed(2)}$ par porte par mois, ce qui est en dessous de la cible de ${targetCashflowPerDoor}$. Le taux de capitalisation est de ${capRate.toFixed(2)}%. Envisagez de négocier un meilleur prix.`;
   } else {
-    expenseRatio = EXPENSE_RATIOS.XLARGE;
+    return `Ce projet est viable avec ${cashflowPerDoor.toFixed(2)}$ par porte par mois et un taux de capitalisation de ${capRate.toFixed(2)}%. Procédez à une analyse plus détaillée pour confirmer la rentabilité.`;
   }
-  
-  // Calcul des dépenses
-  const expenses = params.grossRevenue * expenseRatio;
-  
-  // Calcul du revenu net d'exploitation (RNE)
-  const noi = params.grossRevenue - expenses;
-  
-  // Cashflow annuel cible
-  const targetAnnualCashflow = targetCashflowPerUnit * params.units * 12;
-  
-  // Paiement hypothécaire maximum possible
-  const maxMortgagePayment = noi - targetAnnualCashflow;
-  
-  // Vérifier si le paiement hypothécaire maximum est cohérent
-  if (maxMortgagePayment <= 0) {
-    throw new Error("Impossible d'atteindre le cashflow cible avec ces paramètres. Les revenus sont insuffisants par rapport aux dépenses.");
-  }
-  
-  // Calcul du prix d'achat maximum selon la méthode HIGH-5 inversée
-  const maxPurchasePrice = (maxMortgagePayment / 12) / 0.005;
-  
-  return roundToTwo(maxPurchasePrice);
-}
-
-/**
- * Valide les entrées du calculateur Napkin FLIP
- * @param {NapkinFlipInput} input - Données d'entrée à valider
- * @throws {Error} Si les données sont invalides
- */
-function validateFlipInput(input) {
-  if (!input) {
-    throw new Error("Les données d'entrée sont requises");
-  }
-  
-  if (!input.finalPrice || input.finalPrice <= 0) {
-    throw new Error("Le prix final (valeur de revente) doit être un nombre positif");
-  }
-  
-  if (!input.initialPrice || input.initialPrice <= 0) {
-    throw new Error("Le prix initial (prix d'achat) doit être un nombre positif");
-  }
-  
-  if (input.renovationCost === undefined || input.renovationCost < 0) {
-    throw new Error("Le coût des rénovations doit être spécifié et être un nombre positif ou zéro");
-  }
-  
-  if (input.finalPrice <= input.initialPrice) {
-    throw new Error("Le prix final doit être supérieur au prix initial pour que le projet soit viable");
-  }
-}
-
-/**
- * Valide les entrées du calculateur Napkin MULTI
- * @param {NapkinMultiInput} input - Données d'entrée à valider
- * @throws {Error} Si les données sont invalides
- */
-function validateMultiInput(input) {
-  if (!input) {
-    throw new Error("Les données d'entrée sont requises");
-  }
-  
-  if (!input.purchasePrice || input.purchasePrice <= 0) {
-    throw new Error("Le prix d'achat doit être un nombre positif");
-  }
-  
-  if (!input.units || input.units <= 0 || !Number.isInteger(input.units)) {
-    throw new Error("Le nombre d'unités doit être un entier positif");
-  }
-  
-  if (!input.grossRevenue || input.grossRevenue <= 0) {
-    throw new Error("Les revenus bruts doivent être un nombre positif");
-  }
-}
-
-/**
- * Évalue la qualité du projet FLIP en fonction du profit
- * @param {number} profit - Profit net estimé
- * @returns {string} - Évaluation (EXCELLENT, GOOD, ACCEPTABLE, POOR)
- */
-function getFlipRating(profit) {
-  if (profit >= FLIP_THRESHOLDS.EXCELLENT) {
-    return "EXCELLENT";
-  } else if (profit >= FLIP_THRESHOLDS.TARGET) {
-    return "GOOD";
-  } else if (profit >= FLIP_THRESHOLDS.MINIMUM) {
-    return "ACCEPTABLE";
-  } else {
-    return "POOR";
-  }
-}
-
-/**
- * Évalue la qualité du projet MULTI en fonction du cashflow par porte
- * @param {number} cashflowPerUnit - Cashflow par porte par mois
- * @returns {string} - Évaluation (EXCELLENT, GOOD, ACCEPTABLE, POOR)
- */
-function getMultiRating(cashflowPerUnit) {
-  if (cashflowPerUnit >= MULTI_THRESHOLDS.EXCELLENT) {
-    return "EXCELLENT";
-  } else if (cashflowPerUnit >= MULTI_THRESHOLDS.TARGET) {
-    return "GOOD";
-  } else if (cashflowPerUnit >= MULTI_THRESHOLDS.MINIMUM) {
-    return "ACCEPTABLE";
-  } else {
-    return "POOR";
-  }
-}
-
-/**
- * Génère une recommandation basée sur les résultats de l'analyse pour un projet FLIP
- * @param {number} profit - Profit net estimé
- * @param {boolean} isViable - Indique si le projet est viable
- * @returns {string} - Recommandation
- */
-function generateFlipRecommendation(profit, isViable) {
-  if (!isViable) {
-    if (profit <= 0) {
-      return "Ce projet générera une perte financière. Il est fortement déconseillé d'investir à ce prix d'achat. Envisagez de négocier un prix plus bas ou de chercher un autre projet.";
-    } else {
-      return `Ce projet génère un profit de ${profit.toFixed(2)}$, ce qui est inférieur au seuil minimum recommandé de ${FLIP_THRESHOLDS.MINIMUM}$. Envisagez de négocier un meilleur prix ou de réduire les coûts de rénovation.`;
-    }
-  }
-  
-  if (profit < FLIP_THRESHOLDS.TARGET) {
-    return `Ce projet est acceptable avec un profit de ${profit.toFixed(2)}$, mais reste sous le seuil cible de ${FLIP_THRESHOLDS.TARGET}$. Analysez plus en détail pour confirmer les coûts et la valeur de revente.`;
-  } else if (profit < FLIP_THRESHOLDS.EXCELLENT) {
-    return `Ce projet est bon avec un profit de ${profit.toFixed(2)}$. Procédez à une analyse plus détaillée pour confirmer la valeur de revente et les coûts de rénovation.`;
-  } else {
-    return `Ce projet est excellent avec un profit de ${profit.toFixed(2)}$. Fortement recommandé pour investissement, mais validez tout de même les estimations de rénovation et la valeur après travaux.`;
-  }
-}
-
-/**
- * Génère une recommandation basée sur les résultats de l'analyse pour un projet MULTI
- * @param {number} cashflowPerUnit - Cashflow par porte par mois
- * @param {boolean} isViable - Indique si le projet est viable
- * @returns {string} - Recommandation
- */
-function generateMultiRecommendation(cashflowPerUnit, isViable) {
-  if (!isViable) {
-    if (cashflowPerUnit <= 0) {
-      return "Ce projet générera un cashflow négatif. Il est fortement déconseillé d'investir à moins de pouvoir négocier un prix d'achat plus bas, optimiser les revenus ou réduire les dépenses.";
-    } else {
-      return `Ce projet génère un cashflow de ${cashflowPerUnit.toFixed(2)}$ par porte par mois, ce qui est inférieur au seuil minimum recommandé de ${MULTI_THRESHOLDS.MINIMUM}$. Envisagez de négocier un meilleur prix ou d'optimiser la structure de revenus et dépenses.`;
-    }
-  }
-  
-  if (cashflowPerUnit < MULTI_THRESHOLDS.TARGET) {
-    return `Ce projet est acceptable avec un cashflow de ${cashflowPerUnit.toFixed(2)}$ par porte par mois, mais reste sous le seuil cible de ${MULTI_THRESHOLDS.TARGET}$. Vérifiez si vous pouvez améliorer la rentabilité.`;
-  } else if (cashflowPerUnit < MULTI_THRESHOLDS.EXCELLENT) {
-    return `Ce projet est bon avec un cashflow de ${cashflowPerUnit.toFixed(2)}$ par porte par mois. Procédez à une analyse plus détaillée et évaluez les possibilités d'optimisation.`;
-  } else {
-    return `Ce projet est excellent avec un cashflow de ${cashflowPerUnit.toFixed(2)}$ par porte par mois. Fortement recommandé pour investissement.`;
-  }
-}
-
-/**
- * Arrondit un nombre à deux décimales
- * @param {number} num - Nombre à arrondir
- * @returns {number} - Nombre arrondi
- */
-function roundToTwo(num) {
-  return Math.round(num * 100) / 100;
 }
 
 module.exports = {
-  FLIP_THRESHOLDS,
-  MULTI_THRESHOLDS,
-  EXPENSE_RATIOS,
   calculateNapkinFlip,
   calculateNapkinMulti,
-  calculateMaxOfferPriceFlip,
-  calculateMaxOfferPriceMulti
+  FLIP_EXPENSE_PERCENTAGE,
+  TARGET_CASHFLOW_PER_DOOR
 };
