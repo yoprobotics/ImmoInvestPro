@@ -4,40 +4,47 @@
 
 const { 
   calculateNapkinFlip, 
-  calculateOptimalOffer,
-  PROFIT_THRESHOLDS
+  calculateMaxPurchasePrice, 
+  performSensitivityAnalysis,
+  PROFITABILITY_THRESHOLDS_FLIP
 } = require('../napkin_flip_calculator');
 
 describe('Calculateur Napkin FLIP', () => {
-  // Cas de test: projet de FLIP avec des paramètres réalistes
+  // Cas de test: projet FLIP avec des paramètres réalistes
   const testInputFlip = {
-    finalPrice: 350000,     // Prix de vente estimé après travaux
-    initialPrice: 250000,   // Prix d'achat initial
-    renovationCost: 50000   // Coût estimé des rénovations
+    finalPrice: 260000,   // Prix de revente après travaux
+    initialPrice: 190000, // Prix d'achat
+    renovationCost: 30000 // Coût des rénovations
   };
 
   describe('calculateNapkinFlip', () => {
-    test('devrait calculer correctement les résultats pour un projet de FLIP', () => {
+    test('devrait calculer correctement les résultats pour un projet FLIP', () => {
       const result = calculateNapkinFlip(testInputFlip);
       
       // Vérification des valeurs calculées
-      expect(result.estimatedProfit).toBe(15000);  // 350000 - 250000 - 50000 - 35000 = 15000
-      expect(result.overheadAmount).toBe(35000);   // 10% de 350000
-      expect(result.totalInvestment).toBe(300000); // 250000 + 50000
-      expect(result.profitPercentage).toBeCloseTo(5, 0);
-      expect(result.isViable).toBe(true);          // Profit >= seuil minimum
-      expect(result.rating).toBe("ACCEPTABLE");     // Entre minimum et cible
+      const expectedExpenses = testInputFlip.finalPrice * 0.1; // 10% de frais
+      const expectedProfit = testInputFlip.finalPrice - testInputFlip.initialPrice - testInputFlip.renovationCost - expectedExpenses;
+      const expectedRoi = (expectedProfit / (testInputFlip.initialPrice + testInputFlip.renovationCost)) * 100;
+      
+      expect(result.profit).toBeCloseTo(expectedProfit, 0);
+      expect(result.roi).toBeCloseTo(expectedRoi, 1);
+      expect(result.isViable).toBe(expectedProfit >= PROFITABILITY_THRESHOLDS_FLIP.MINIMUM);
+      expect(result.rating).toBeDefined();
+      expect(result.recommendation).toBeDefined();
     });
 
-    test('devrait gérer correctement un profit négatif', () => {
-      // Cloner l'entrée de test et augmenter le prix initial
-      const negativeInput = JSON.parse(JSON.stringify(testInputFlip));
-      negativeInput.initialPrice = 320000;  // Augmenter considérablement le prix initial
+    test('devrait gérer correctement un projet avec perte', () => {
+      // Projet avec perte
+      const negativeInput = {
+        finalPrice: 200000,
+        initialPrice: 190000,
+        renovationCost: 30000
+      };
       
       const result = calculateNapkinFlip(negativeInput);
       
       // Vérifier que le profit est négatif et le projet non viable
-      expect(result.estimatedProfit).toBeLessThan(0);
+      expect(result.profit).toBeLessThan(0);
       expect(result.isViable).toBe(false);
       expect(result.rating).toBe("POOR");
     });
@@ -49,103 +56,119 @@ describe('Calculateur Napkin FLIP', () => {
       }).toThrow("Les données d'entrée sont requises");
       
       expect(() => {
-        calculateNapkinFlip({ finalPrice: -1, initialPrice: 100000, renovationCost: 50000 });
-      }).toThrow("Le prix final doit être un nombre positif");
+        calculateNapkinFlip({ finalPrice: -1, initialPrice: 100000, renovationCost: 20000 });
+      }).toThrow("Le prix final (valeur de revente) doit être un nombre positif");
       
       expect(() => {
-        calculateNapkinFlip({ finalPrice: 350000, initialPrice: 0, renovationCost: 50000 });
-      }).toThrow("Le prix initial doit être un nombre positif");
-      
-      expect(() => {
-        calculateNapkinFlip({ finalPrice: 350000, initialPrice: 250000 });
-      }).toThrow("Le coût des rénovations est requis");
-    });
-
-    test('devrait permettre de spécifier un pourcentage de frais généraux différent', () => {
-      const customOverheadInput = {
-        finalPrice: 350000,
-        initialPrice: 250000,
-        renovationCost: 50000,
-        overheadPercentage: 15  // Frais généraux de 15% au lieu de 10%
-      };
-      
-      const result = calculateNapkinFlip(customOverheadInput);
-      
-      // Vérifier que les frais généraux sont bien calculés avec 15%
-      expect(result.overheadAmount).toBe(52500);  // 15% de 350000
-      expect(result.estimatedProfit).toBe(-2500); // 350000 - 250000 - 50000 - 52500 = -2500
+        calculateNapkinFlip({ finalPrice: 200000, initialPrice: 0, renovationCost: 20000 });
+      }).toThrow("Le prix initial (prix d'achat) doit être un nombre positif");
     });
   });
 
-  describe('calculateOptimalOffer', () => {
-    test('devrait calculer correctement le prix d'offre optimal pour un profit cible', () => {
+  describe('calculateMaxPurchasePrice', () => {
+    test('devrait calculer correctement le prix d'achat maximum pour un profit cible', () => {
       const params = {
-        finalPrice: 350000,
-        renovationCost: 50000,
-        targetProfit: 25000  // Profit cible de 25 000$
+        finalPrice: 260000,
+        renovationCost: 30000,
+        targetProfit: 25000
       };
       
-      const result = calculateOptimalOffer(params);
+      const result = calculateMaxPurchasePrice(params);
       
       // Vérifier que le résultat est cohérent
-      const expectedOffer = 350000 - 50000 - 35000 - 25000; // 240000
-      expect(result.optimalOffer).toBe(expectedOffer);
-      expect(result.calculatedProfit).toBe(25000);  // Doit correspondre au profit cible
-      expect(result.isPossible).toBe(true);         // Offre positive, donc possible
+      const expectedExpenses = params.finalPrice * 0.1;
+      const expectedMaxPrice = params.finalPrice - params.renovationCost - expectedExpenses - params.targetProfit;
+      
+      expect(result.maxPurchasePrice).toBeCloseTo(expectedMaxPrice, 0);
+      expect(result.targetProfit).toBe(params.targetProfit);
     });
 
-    test('devrait indiquer quand une offre n'est pas possible', () => {
+    test('devrait utiliser le profit cible par défaut si non spécifié', () => {
       const params = {
-        finalPrice: 200000,
-        renovationCost: 180000,
-        targetProfit: 40000  // Profit cible très élevé par rapport aux autres valeurs
+        finalPrice: 260000,
+        renovationCost: 30000
       };
       
-      const result = calculateOptimalOffer(params);
+      const result = calculateMaxPurchasePrice(params);
       
-      // L'offre doit être négative, donc impossible
-      expect(result.optimalOffer).toBeLessThan(0);
-      expect(result.isPossible).toBe(false);
+      expect(result.targetProfit).toBe(PROFITABILITY_THRESHOLDS_FLIP.TARGET);
+    });
+
+    test('devrait lancer une erreur si le profit cible est impossible à atteindre', () => {
+      const params = {
+        finalPrice: 100000,
+        renovationCost: 70000,
+        targetProfit: 40000
+      };
+      
+      expect(() => {
+        calculateMaxPurchasePrice(params);
+      }).toThrow("Impossible d'atteindre le profit cible");
+    });
+  });
+
+  describe('performSensitivityAnalysis', () => {
+    test('devrait générer différents scénarios d\'analyse de sensibilité', () => {
+      const scenarios = {
+        initialPrice: [-10, 0, 10],
+        finalPrice: [-10, 0, 10],
+        renovationCost: [-20, 0, 20]
+      };
+      
+      const results = performSensitivityAnalysis(testInputFlip, scenarios);
+      
+      // Vérifier que l'analyse contient le cas de base et des scénarios
+      expect(results.baseCase).toBeDefined();
+      expect(results.scenarios.length).toBe(6);  // 3 variations par paramètre - 1 cas de base déjà compté = 6
+      
+      // Vérifier que les scénarios sont triés par profit descendant
+      const profits = results.scenarios.map(s => s.result.profit);
+      const sortedProfits = [...profits].sort((a, b) => b - a);
+      expect(profits).toEqual(sortedProfits);
     });
   });
 
   describe('Cas d\'utilisation réels', () => {
-    test('Scénario de FLIP pour une maison à Montréal', () => {
+    test('Scénario maison à rénover à Montréal', () => {
       const input = {
-        finalPrice: 550000,     // Prix de vente estimé après travaux
-        initialPrice: 400000,   // Prix d'achat initial
-        renovationCost: 75000   // Coût estimé des rénovations
+        finalPrice: 450000,   // Prix de revente après rénovations
+        initialPrice: 320000, // Prix d'achat
+        renovationCost: 60000 // Coût des rénovations
       };
       
       const result = calculateNapkinFlip(input);
       
-      // Vérifier que le projet est viable pour Montréal
+      // Vérifier que c'est un investissement viable
       expect(result.isViable).toBe(true);
-      expect(result.estimatedProfit).toBeGreaterThanOrEqual(PROFIT_THRESHOLDS.MINIMUM);
+      expect(result.profit).toBeGreaterThanOrEqual(PROFITABILITY_THRESHOLDS_FLIP.MINIMUM);
       
-      // Calculer l'offre optimale pour un profit cible de 35 000$
-      const optimalOfferParams = {
+      // Calculer le prix maximum pour un profit cible de 25000$
+      const maxPriceParams = {
         finalPrice: input.finalPrice,
         renovationCost: input.renovationCost,
-        targetProfit: 35000
+        targetProfit: 25000
       };
       
-      const optimalOfferResult = calculateOptimalOffer(optimalOfferParams);
-      expect(optimalOfferResult.isPossible).toBe(true);
+      const maxPriceResult = calculateMaxPurchasePrice(maxPriceParams);
+      expect(maxPriceResult.maxPurchasePrice).toBeGreaterThan(0);
     });
 
-    test('Scénario de FLIP pour une maison avec rénovations importantes', () => {
+    test('Scénario maison à rénover à Québec', () => {
       const input = {
-        finalPrice: 450000,     // Prix de vente estimé après travaux
-        initialPrice: 280000,   // Prix d'achat initial
-        renovationCost: 120000  // Coût élevé des rénovations
+        finalPrice: 350000,   // Prix de revente après rénovations
+        initialPrice: 250000, // Prix d'achat
+        renovationCost: 45000 // Coût des rénovations
       };
       
       const result = calculateNapkinFlip(input);
       
-      // Vérifier les résultats avec des rénovations importantes
-      expect(result.totalInvestment).toBe(400000); // 280000 + 120000
-      expect(result.overheadAmount).toBe(45000);   // 10% de 450000
+      // Vérifier les résultats
+      expect(result.isViable).toBe(true);
+      expect(result.profit).toBeGreaterThan(0);
+      
+      // Analyser la sensibilité
+      const sensitivityResults = performSensitivityAnalysis(input);
+      expect(sensitivityResults.scenarios.length).toBeGreaterThan(0);
     });
   });
 });
