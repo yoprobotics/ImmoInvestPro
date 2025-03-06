@@ -1,13 +1,12 @@
 /**
- * Contrôleur pour les endpoints des calculateurs
+ * Contrôleur pour les calculateurs immobiliers
  */
 
-const napkinFlipCalculator = require('../calculators/flip/napkin_flip_calculator');
-const napkinMultiCalculator = require('../calculators/multi/napkin_multi_calculator');
-const liquidityCalculator = require('../calculators/financial/liquidity_calculator');
+const LiquidityCalculator = require('../services/calculators/LiquidityCalculator');
+const NapkinCalculator = require('../services/calculators/NapkinCalculator');
 
 /**
- * @desc    Calcule le profit estimé d'un FLIP avec la méthode Napkin (FIP10)
+ * @desc    Calcule les résultats du Calculateur Napkin FLIP
  * @route   POST /api/calculators/napkin-flip
  * @access  Public
  */
@@ -15,33 +14,35 @@ exports.calculateNapkinFlip = (req, res) => {
   try {
     const { finalPrice, initialPrice, renovationCost } = req.body;
     
-    if (!finalPrice || !initialPrice || renovationCost === undefined) {
-      return res.status(400).json({
-        success: false,
-        error: 'Veuillez fournir tous les paramètres requis: finalPrice, initialPrice, renovationCost'
+    // Validation des entrées
+    if (!finalPrice || !initialPrice || !renovationCost) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Veuillez fournir tous les paramètres requis: finalPrice, initialPrice, renovationCost' 
       });
     }
     
-    const result = napkinFlipCalculator.calculateFlipProfit(
-      parseFloat(finalPrice),
-      parseFloat(initialPrice),
-      parseFloat(renovationCost)
+    const result = NapkinCalculator.calculateFlipProfit(
+      Number(finalPrice), 
+      Number(initialPrice), 
+      Number(renovationCost)
     );
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: result
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
+      message: 'Erreur lors du calcul Napkin FLIP',
       error: error.message
     });
   }
 };
 
 /**
- * @desc    Calcule l'offre d'achat pour un profit cible d'un FLIP avec la méthode Napkin
+ * @desc    Calcule le prix d'offre pour un FLIP selon le profit visé
  * @route   POST /api/calculators/napkin-flip/offer
  * @access  Public
  */
@@ -49,199 +50,256 @@ exports.calculateNapkinFlipOffer = (req, res) => {
   try {
     const { finalPrice, renovationCost, targetProfit } = req.body;
     
-    if (!finalPrice || renovationCost === undefined || !targetProfit) {
-      return res.status(400).json({
-        success: false,
-        error: 'Veuillez fournir tous les paramètres requis: finalPrice, renovationCost, targetProfit'
+    // Validation des entrées
+    if (!finalPrice || !renovationCost || !targetProfit) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Veuillez fournir tous les paramètres requis: finalPrice, renovationCost, targetProfit' 
       });
     }
     
-    const result = napkinFlipCalculator.calculateFlipOffer(
-      parseFloat(finalPrice),
-      parseFloat(renovationCost),
-      parseFloat(targetProfit)
+    const result = NapkinCalculator.calculateFlipOfferPrice(
+      Number(finalPrice), 
+      Number(renovationCost), 
+      Number(targetProfit)
     );
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: result
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
+      message: 'Erreur lors du calcul du prix d\'offre Napkin FLIP',
       error: error.message
     });
   }
 };
 
 /**
- * @desc    Calcule la rentabilité d'un MULTI avec la méthode Napkin (PAR et HIGH-5)
+ * @desc    Calcule les résultats du Calculateur Napkin MULTI
  * @route   POST /api/calculators/napkin-multi
  * @access  Public
  */
 exports.calculateNapkinMulti = (req, res) => {
   try {
-    const { purchasePrice, units, grossRevenue } = req.body;
+    const { purchasePrice, apartmentCount, grossRevenue } = req.body;
     
-    if (!purchasePrice || !units || !grossRevenue) {
-      return res.status(400).json({
-        success: false,
-        error: 'Veuillez fournir tous les paramètres requis: purchasePrice, units, grossRevenue'
+    // Validation des entrées
+    if (!purchasePrice || !apartmentCount || !grossRevenue) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Veuillez fournir tous les paramètres requis: purchasePrice, apartmentCount, grossRevenue' 
       });
     }
     
-    const result = napkinMultiCalculator.calculateMultiCashflow(
-      parseFloat(purchasePrice),
-      parseInt(units),
-      parseFloat(grossRevenue)
+    const result = NapkinCalculator.calculateMultiCashflow(
+      Number(purchasePrice), 
+      Number(apartmentCount), 
+      Number(grossRevenue)
     );
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: result
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
+      message: 'Erreur lors du calcul Napkin MULTI',
       error: error.message
     });
   }
 };
 
 /**
- * @desc    Calcule l'offre d'achat pour un cashflow cible d'un MULTI avec la méthode Napkin
+ * @desc    Calcule le prix d'offre pour un MULTI selon le cashflow visé
  * @route   POST /api/calculators/napkin-multi/offer
  * @access  Public
  */
 exports.calculateNapkinMultiOffer = (req, res) => {
   try {
-    const { units, grossRevenue, targetCashflowPerUnit } = req.body;
+    const { apartmentCount, grossRevenue, targetCashflowPerDoor } = req.body;
     
-    if (!units || !grossRevenue || !targetCashflowPerUnit) {
-      return res.status(400).json({
-        success: false,
-        error: 'Veuillez fournir tous les paramètres requis: units, grossRevenue, targetCashflowPerUnit'
+    // Validation des entrées
+    if (!apartmentCount || !grossRevenue || !targetCashflowPerDoor) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Veuillez fournir tous les paramètres requis: apartmentCount, grossRevenue, targetCashflowPerDoor' 
       });
     }
     
-    const result = napkinMultiCalculator.calculateMultiOffer(
-      parseInt(units),
-      parseFloat(grossRevenue),
-      parseFloat(targetCashflowPerUnit)
+    const result = NapkinCalculator.calculateMultiOfferPrice(
+      Number(apartmentCount), 
+      Number(grossRevenue), 
+      Number(targetCashflowPerDoor)
     );
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: result
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
+      message: 'Erreur lors du calcul du prix d\'offre Napkin MULTI',
       error: error.message
     });
   }
 };
 
 /**
- * @desc    Calcule la liquidité détaillée d'un immeuble
+ * @desc    Calcule les résultats du Calculateur de Liquidité
  * @route   POST /api/calculators/liquidity
  * @access  Public
  */
 exports.calculateLiquidity = (req, res) => {
   try {
-    const { units, revenues, expenses, financing } = req.body;
+    const { 
+      purchasePrice, 
+      downPayment, 
+      grossRevenue, 
+      expenses, 
+      interestRate, 
+      amortizationYears,
+      otherFinancing = [] 
+    } = req.body;
     
-    if (!units || !revenues || !expenses || !financing) {
-      return res.status(400).json({
-        success: false,
-        error: 'Veuillez fournir tous les paramètres requis: units, revenues, expenses, financing'
+    // Validation des entrées essentielles
+    if (!purchasePrice || !downPayment || !grossRevenue || !expenses || !interestRate || !amortizationYears) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Veuillez fournir tous les paramètres requis: purchasePrice, downPayment, grossRevenue, expenses, interestRate, amortizationYears' 
       });
     }
     
-    const input = {
-      units: parseInt(units),
-      revenues,
-      expenses,
-      financing
-    };
+    const calculator = new LiquidityCalculator({
+      purchasePrice: Number(purchasePrice),
+      downPayment: Number(downPayment),
+      grossRevenue: Number(grossRevenue),
+      expenses: Number(expenses),
+      interestRate: Number(interestRate),
+      amortizationYears: Number(amortizationYears),
+      otherFinancing: otherFinancing
+    });
     
-    const result = liquidityCalculator.calculateLiquidity(input);
+    const result = calculator.calculateLiquidity();
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       data: result
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
+      message: 'Erreur lors du calcul de liquidité',
       error: error.message
     });
   }
 };
 
 /**
- * @desc    Calcule le prix d'achat maximum pour un cashflow cible
+ * @desc    Calcule le prix d'achat maximum en fonction du cashflow cible
  * @route   POST /api/calculators/liquidity/max-price
  * @access  Public
  */
 exports.calculateMaxPurchasePrice = (req, res) => {
   try {
-    const { units, revenues, expenses, mortgageTerms, targetCashflowPerUnit } = req.body;
+    const { 
+      targetCashflow, 
+      downPaymentPercentage, 
+      grossRevenue, 
+      expenses, 
+      interestRate, 
+      amortizationYears,
+      otherFinancing = [] 
+    } = req.body;
     
-    if (!units || !revenues || !expenses || !mortgageTerms) {
-      return res.status(400).json({
-        success: false,
-        error: 'Veuillez fournir tous les paramètres requis: units, revenues, expenses, mortgageTerms'
+    // Validation des entrées essentielles
+    if (!targetCashflow || !downPaymentPercentage || !grossRevenue || !expenses || !interestRate || !amortizationYears) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Veuillez fournir tous les paramètres requis: targetCashflow, downPaymentPercentage, grossRevenue, expenses, interestRate, amortizationYears' 
       });
     }
     
-    const params = {
-      units: parseInt(units),
-      revenues,
-      expenses,
-      mortgageTerms,
-      targetCashflowPerUnit: targetCashflowPerUnit || liquidityCalculator.PROFITABILITY_THRESHOLDS.TARGET
-    };
+    const calculator = new LiquidityCalculator({
+      downPaymentPercentage: Number(downPaymentPercentage),
+      grossRevenue: Number(grossRevenue),
+      expenses: Number(expenses),
+      interestRate: Number(interestRate),
+      amortizationYears: Number(amortizationYears),
+      otherFinancing: otherFinancing
+    });
     
-    const result = liquidityCalculator.calculateMaxPurchasePrice(params);
+    const maxPrice = calculator.calculateMaxPurchasePrice(Number(targetCashflow));
     
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      data: result
+      data: {
+        maxPurchasePrice: maxPrice,
+        downPayment: maxPrice * (Number(downPaymentPercentage) / 100),
+        mortgage: maxPrice * (1 - Number(downPaymentPercentage) / 100)
+      }
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
+      message: 'Erreur lors du calcul du prix d\'achat maximum',
       error: error.message
     });
   }
 };
 
 /**
- * @desc    Effectue une analyse de sensibilité pour différents scénarios
+ * @desc    Effectue une analyse de sensibilité du cashflow
  * @route   POST /api/calculators/liquidity/sensitivity
  * @access  Public
  */
 exports.performSensitivityAnalysis = (req, res) => {
   try {
-    const { baseInput, scenarios } = req.body;
+    const { 
+      purchasePrice, 
+      downPayment, 
+      grossRevenue, 
+      expenses, 
+      interestRate, 
+      amortizationYears,
+      otherFinancing = [],
+      parameters = ['interestRate', 'grossRevenue', 'expenses'],
+      variationPercentage = 10,
+      steps = 5
+    } = req.body;
     
-    if (!baseInput) {
-      return res.status(400).json({
-        success: false,
-        error: 'Veuillez fournir le paramètre baseInput'
+    // Validation des entrées essentielles
+    if (!purchasePrice || !downPayment || !grossRevenue || !expenses || !interestRate || !amortizationYears) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Veuillez fournir tous les paramètres requis: purchasePrice, downPayment, grossRevenue, expenses, interestRate, amortizationYears' 
       });
     }
     
-    const result = liquidityCalculator.performSensitivityAnalysis(baseInput, scenarios);
+    const calculator = new LiquidityCalculator({
+      purchasePrice: Number(purchasePrice),
+      downPayment: Number(downPayment),
+      grossRevenue: Number(grossRevenue),
+      expenses: Number(expenses),
+      interestRate: Number(interestRate),
+      amortizationYears: Number(amortizationYears),
+      otherFinancing: otherFinancing
+    });
     
-    return res.status(200).json({
+    const result = calculator.performSensitivityAnalysis(parameters, Number(variationPercentage), Number(steps));
+    
+    res.status(200).json({
       success: true,
       data: result
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
+      message: 'Erreur lors de l\'analyse de sensibilité',
       error: error.message
     });
   }
