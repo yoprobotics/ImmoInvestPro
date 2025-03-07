@@ -80,6 +80,35 @@ const propertyData = {
     vacancyRate: 3
   },
   
+  // Détails des dépenses
+  expenseDetails: {
+    // Taxes et assurances
+    municipalTaxes: 7250, // Taxes municipales annuelles
+    schoolTaxes: 950, // Taxes scolaires annuelles
+    insurance: 3200, // Assurance immeuble
+
+    // Utilités
+    electricity: 2400, // Électricité (si payée par le propriétaire)
+    heating: 3800, // Chauffage (si payé par le propriétaire)
+    water: 1200, // Eau et égouts
+
+    // Entretien et services
+    maintenance: 5500, // Entretien et réparations générales
+    management: 3840, // Frais de gestion (ex: 5% des revenus bruts)
+    janitorial: 2400, // Conciergerie
+    snowRemoval: 1800, // Déneigement
+    landscaping: 1200, // Aménagement paysager
+    garbage: 600, // Collecte des ordures (si applicable)
+
+    // Frais professionnels
+    legal: 800, // Frais juridiques moyens
+    accounting: 1200, // Frais comptables
+    
+    // Autres dépenses
+    advertising: 500, // Publicité pour la location
+    other: 1000 // Dépenses diverses
+  },
+  
   // Structure de financement
   financing: {
     // Premier prêt hypothécaire (conventionnel)
@@ -106,9 +135,30 @@ const result = MultiDetailedCalculator.calculate(propertyData);
 // Affichage des résultats
 console.log('\n=== RAPPORT D\'ANALYSE D\'INVESTISSEMENT ===');
 console.log(`Immeuble de ${result.summary.units} logements au prix de ${result.summary.purchasePrice.toLocaleString()} $`);
+
 console.log('\n--- REVENUS ---');
 console.log(`Revenu brut annuel: ${result.details.grossAnnualRent.toLocaleString()} $`);
 console.log(`Revenu net d'opération: ${result.details.netOperatingIncome.toLocaleString()} $`);
+
+console.log('\n--- DÉPENSES ---');
+console.log(`Total des dépenses annuelles: ${result.details.expenseDetails.totalAnnualExpenses.toLocaleString()} $`);
+console.log(`Ratio des dépenses: ${result.details.expenseRatio.toFixed(2)} %`);
+
+// Affichage des principales catégories de dépenses
+console.log('\nDépenses par catégorie:');
+const expenseCategories = result.details.expenseDetails.categories;
+console.log(`Taxes municipales: ${expenseCategories.municipalTaxes?.annualAmount.toLocaleString() || 0} $ (${((expenseCategories.municipalTaxes?.annualAmount || 0) / result.details.expenseDetails.totalAnnualExpenses * 100).toFixed(1)}%)`);
+console.log(`Taxes scolaires: ${expenseCategories.schoolTaxes?.annualAmount.toLocaleString() || 0} $ (${((expenseCategories.schoolTaxes?.annualAmount || 0) / result.details.expenseDetails.totalAnnualExpenses * 100).toFixed(1)}%)`);
+console.log(`Assurance: ${expenseCategories.insurance?.annualAmount.toLocaleString() || 0} $ (${((expenseCategories.insurance?.annualAmount || 0) / result.details.expenseDetails.totalAnnualExpenses * 100).toFixed(1)}%)`);
+console.log(`Chauffage et électricité: ${(expenseCategories.heating?.annualAmount || 0 + expenseCategories.electricity?.annualAmount || 0).toLocaleString()} $ (${((expenseCategories.heating?.annualAmount || 0 + expenseCategories.electricity?.annualAmount || 0) / result.details.expenseDetails.totalAnnualExpenses * 100).toFixed(1)}%)`);
+console.log(`Entretien: ${expenseCategories.maintenance?.annualAmount.toLocaleString() || 0} $ (${((expenseCategories.maintenance?.annualAmount || 0) / result.details.expenseDetails.totalAnnualExpenses * 100).toFixed(1)}%)`);
+
+console.log('\n--- FINANCEMENT ---');
+console.log(`Premier prêt hypothécaire: ${result.details.financing.firstMortgageAmount.toLocaleString()} $ (mensuel: ${result.details.financing.firstMortgageMonthlyPayment.toFixed(2)} $)`);
+if (result.details.financing.sellerFinancingAmount > 0) {
+  console.log(`Balance de vente: ${result.details.financing.sellerFinancingAmount.toLocaleString()} $ (mensuel: ${result.details.financing.sellerFinancingMonthlyPayment.toFixed(2)} $)`);
+}
+console.log(`Mise de fonds totale: ${result.details.financing.totalDownPayment.toLocaleString()} $`);
 
 console.log('\n--- INDICATEURS DE PERFORMANCE ---');
 console.log(`Taux de capitalisation: ${result.summary.capRate} %`);
