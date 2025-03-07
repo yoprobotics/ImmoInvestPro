@@ -1,12 +1,12 @@
 import React from 'react';
 import { 
   Paper, Typography, Box, Divider, Grid,
-  Card, CardContent, LinearProgress, Tooltip
+  LinearProgress, Rating, Tooltip
 } from '@mui/material';
 import { formatNumberWithSpaces } from '../../../utils/formatters';
 
 /**
- * Composant affichant les indicateurs financiers détaillés
+ * Composant affichant les principaux indicateurs financiers
  * @param {Object} results - Résultats du calcul
  */
 const FinancialIndicators = ({ results }) => {
@@ -14,194 +14,262 @@ const FinancialIndicators = ({ results }) => {
   
   const { summary, details } = results;
   
-  // Fonction pour rendre une jauge avec un indicateur
-  const renderGauge = (value, threshold1, threshold2, title, suffix = '%', tooltipText = '') => {
-    // Déterminer la couleur basée sur les seuils
-    let color = 'error';
-    if (value >= threshold2) color = 'success';
-    else if (value >= threshold1) color = 'warning';
-    
-    // Normaliser la valeur pour la barre de progression (0-100)
-    let normalizedValue = value;
-    let max = Math.max(threshold2 * 1.5, value);
-    
-    // Si valeur négative, on ajuste pour un affichage cohérent
-    if (value < 0) {
-      normalizedValue = 0;
-    } else {
-      normalizedValue = (value / max) * 100;
-    }
-    
-    // Limiter à 100%
-    normalizedValue = Math.min(normalizedValue, 100);
-    
-    return (
-      <Tooltip title={tooltipText} arrow placement="top">
-        <Card variant="outlined" sx={{ mb: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle2" gutterBottom>
-              {title}
-            </Typography>
-            <Typography variant="h5" color={`${color}.main`} sx={{ mb: 1 }}>
-              {typeof value === 'number' ? value.toFixed(2) : value}{suffix}
-            </Typography>
-            <LinearProgress 
-              variant="determinate" 
-              value={normalizedValue} 
-              color={color}
-              sx={{ height: 8, borderRadius: 4 }}
-            />
-          </CardContent>
-        </Card>
-      </Tooltip>
-    );
+  // Évaluation des indicateurs sur une échelle de 1 à 5
+  const evaluateCapRate = (rate) => {
+    const capRate = parseFloat(rate);
+    if (capRate >= 7) return 5;
+    if (capRate >= 6) return 4;
+    if (capRate >= 5) return 3;
+    if (capRate >= 4) return 2;
+    return 1;
   };
   
-  // Configuration des seuils pour chaque indicateur
-  const indicators = [
-    {
-      title: 'Cashflow par porte',
-      value: summary.cashflowPerUnit,
-      threshold1: 0,
-      threshold2: 75,
-      suffix: ' $/mois',
-      tooltipText: 'Un cashflow de 75$/porte/mois ou plus est considéré comme bon'
-    },
-    {
-      title: 'Taux de capitalisation',
-      value: parseFloat(summary.capRate),
-      threshold1: 4,
-      threshold2: 5,
-      suffix: '%',
-      tooltipText: 'Un taux de capitalisation de 5% ou plus est généralement recherché'
-    },
-    {
-      title: 'Rendement sur fonds propres',
-      value: parseFloat(summary.cashOnCash),
-      threshold1: 5,
-      threshold2: 8,
-      suffix: '%',
-      tooltipText: 'Un rendement sur fonds propres de 8% ou plus est considéré comme attractif'
-    },
-    {
-      title: 'Multiplicateur de revenu brut',
-      value: parseFloat(summary.grossRentMultiplier),
-      threshold1: 8,
-      threshold2: 12,
-      suffix: '',
-      tooltipText: 'Un multiplicateur entre 8 et 12 est généralement acceptable, mais cela dépend du marché'
-    }
-  ];
+  const evaluateCashOnCash = (rate) => {
+    const cashOnCash = parseFloat(rate);
+    if (cashOnCash >= 12) return 5;
+    if (cashOnCash >= 10) return 4;
+    if (cashOnCash >= 8) return 3;
+    if (cashOnCash >= 6) return 2;
+    return 1;
+  };
   
-  // Données supplémentaires pour le tableau de bord
-  const expenseRatio = details.expenseRatio || 
-    (details.operatingExpenses / details.revenueDetails.totalAnnualRevenue * 100);
+  const evaluateCashflowPerUnit = (cashflow) => {
+    if (cashflow >= 150) return 5;
+    if (cashflow >= 100) return 4;
+    if (cashflow >= 75) return 3;
+    if (cashflow >= 50) return 2;
+    if (cashflow >= 0) return 1;
+    return 0;
+  };
+  
+  const evaluateGRM = (grm) => {
+    const value = parseFloat(grm);
+    if (value <= 5) return 5;
+    if (value <= 6) return 4;
+    if (value <= 8) return 3;
+    if (value <= 10) return 2;
+    return 1;
+  };
+  
+  const evaluateExpenseRatio = (ratio) => {
+    if (!details?.expenseDetails?.expenseRatio) return 3;
+    
+    const expenseRatio = details.expenseDetails.expenseRatio;
+    if (expenseRatio <= 35) return 5;
+    if (expenseRatio <= 40) return 4;
+    if (expenseRatio <= 45) return 3;
+    if (expenseRatio <= 50) return 2;
+    return 1;
+  };
+  
+  // Calcul du score global
+  const capRateScore = evaluateCapRate(summary.capRate);
+  const cashOnCashScore = evaluateCashOnCash(summary.cashOnCash);
+  const cashflowPerUnitScore = evaluateCashflowPerUnit(summary.cashflowPerUnit);
+  const grmScore = evaluateGRM(summary.grossRentMultiplier);
+  const expenseRatioScore = evaluateExpenseRatio();
+  
+  const totalScore = Math.round((capRateScore + cashOnCashScore + cashflowPerUnitScore + grmScore + expenseRatioScore) / 5 * 100) / 100;
+  
+  // Interprétation du score
+  let scoreInterpretation;
+  let scoreColor;
+  
+  if (totalScore >= 4.5) {
+    scoreInterpretation = "Excellent investissement";
+    scoreColor = "success.main";
+  } else if (totalScore >= 3.5) {
+    scoreInterpretation = "Très bon investissement";
+    scoreColor = "success.main";
+  } else if (totalScore >= 2.5) {
+    scoreInterpretation = "Bon investissement";
+    scoreColor = "primary.main";
+  } else if (totalScore >= 1.5) {
+    scoreInterpretation = "Investissement moyen";
+    scoreColor = "warning.main";
+  } else {
+    scoreInterpretation = "Investissement risqué";
+    scoreColor = "error.main";
+  }
   
   return (
     <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
       <Typography variant="h6" gutterBottom>
-        Indicateurs de performance
+        Indicateurs financiers
       </Typography>
-      <Divider sx={{ mb: 3 }} />
       
-      {/* Jauges d'indicateurs financiers */}
-      <Grid container spacing={2}>
-        {indicators.map((indicator, index) => (
-          <Grid item xs={12} sm={6} key={index}>
-            {renderGauge(
-              indicator.value,
-              indicator.threshold1,
-              indicator.threshold2,
-              indicator.title,
-              indicator.suffix,
-              indicator.tooltipText
-            )}
-          </Grid>
-        ))}
-      </Grid>
-      
-      {/* Informations financières additionnelles */}
-      <Typography variant="subtitle2" gutterBottom sx={{ mt: 3 }}>
-        Ratios financiers supplémentaires
-      </Typography>
-      <Divider sx={{ mb: 2 }} />
-      
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Ratio de dépenses:
-            </Typography>
-            <Typography variant="body1">
-              {expenseRatio.toFixed(2)}% des revenus bruts
-            </Typography>
-          </Box>
-        </Grid>
-        
-        <Grid item xs={12} sm={6}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Prix par unité:
-            </Typography>
-            <Typography variant="body1">
-              {formatNumberWithSpaces(details.purchasePrice / summary.units)} $
-            </Typography>
-          </Box>
-        </Grid>
-        
-        <Grid item xs={12} sm={6}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Revenu annuel par unité:
-            </Typography>
-            <Typography variant="body1">
-              {formatNumberWithSpaces(details.grossAnnualRent / summary.units)} $
-            </Typography>
-          </Box>
-        </Grid>
-        
-        <Grid item xs={12} sm={6}>
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Mise de fonds:
-            </Typography>
-            <Typography variant="body1">
-              {formatNumberWithSpaces(details.financing.totalDownPayment)} $ 
-              ({(details.financing.totalDownPayment / details.purchasePrice * 100).toFixed(2)}%)
-            </Typography>
-          </Box>
-        </Grid>
-      </Grid>
-      
-      {/* Conseils basés sur les résultats */}
-      <Paper 
-        variant="outlined" 
-        sx={{ p: 2, mt: 3, bgcolor: 'info.light', borderColor: 'info.main' }}
-      >
+      {/* Score global */}
+      <Box sx={{ textAlign: 'center', my: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
-          Conseils d'optimisation
+          Score global
         </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Typography variant="h4" sx={{ mr: 2, color: scoreColor }}>
+            {totalScore}
+          </Typography>
+          <Rating value={totalScore} precision={0.5} readOnly max={5} />
+        </Box>
+        <Typography variant="body2" color={scoreColor} sx={{ mt: 1, fontWeight: 'bold' }}>
+          {scoreInterpretation}
+        </Typography>
+      </Box>
+      
+      <Divider sx={{ my: 2 }} />
+      
+      {/* Évaluation détaillée des indicateurs */}
+      <Grid container spacing={3}>
+        {/* Taux de capitalisation */}
+        <Grid item xs={12}>
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Tooltip title="Revenu net d'exploitation divisé par le prix d'achat">
+                <Typography variant="body2">Taux de capitalisation (Cap Rate)</Typography>
+              </Tooltip>
+              <Typography variant="body2">{summary.capRate}%</Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={capRateScore * 20} 
+              color={capRateScore >= 3 ? "success" : "warning"}
+              sx={{ height: 8, borderRadius: 1 }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">Faible</Typography>
+              <Typography variant="caption" color="text.secondary">Excellent</Typography>
+            </Box>
+          </Box>
+        </Grid>
         
-        {summary.cashflowPerUnit < 75 && (
+        {/* Rendement sur fonds propres */}
+        <Grid item xs={12}>
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Tooltip title="Cashflow annuel divisé par la mise de fonds">
+                <Typography variant="body2">Rendement sur fonds propres (Cash-on-Cash)</Typography>
+              </Tooltip>
+              <Typography variant="body2">{summary.cashOnCash}%</Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={cashOnCashScore * 20} 
+              color={cashOnCashScore >= 3 ? "success" : "warning"}
+              sx={{ height: 8, borderRadius: 1 }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">Faible</Typography>
+              <Typography variant="caption" color="text.secondary">Excellent</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        
+        {/* Cashflow par porte */}
+        <Grid item xs={12}>
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Tooltip title="Cashflow mensuel divisé par le nombre d'unités">
+                <Typography variant="body2">Cashflow par porte</Typography>
+              </Tooltip>
+              <Typography variant="body2">{formatNumberWithSpaces(summary.cashflowPerUnit)} $/mois</Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={cashflowPerUnitScore * 20} 
+              color={cashflowPerUnitScore >= 3 ? "success" : "warning"}
+              sx={{ height: 8, borderRadius: 1 }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">Négatif</Typography>
+              <Typography variant="caption" color="text.secondary">Excellent</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        
+        {/* Multiplicateur de revenu brut */}
+        <Grid item xs={12}>
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Tooltip title="Prix d'achat divisé par le revenu brut annuel">
+                <Typography variant="body2">Multiplicateur de revenu brut (GRM)</Typography>
+              </Tooltip>
+              <Typography variant="body2">{summary.grossRentMultiplier}</Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={grmScore * 20} 
+              color={grmScore >= 3 ? "success" : "warning"}
+              sx={{ height: 8, borderRadius: 1 }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">Élevé</Typography>
+              <Typography variant="caption" color="text.secondary">Faible</Typography>
+            </Box>
+          </Box>
+        </Grid>
+        
+        {/* Ratio de dépenses */}
+        <Grid item xs={12}>
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Tooltip title="Dépenses d'exploitation divisées par le revenu brut">
+                <Typography variant="body2">Ratio de dépenses</Typography>
+              </Tooltip>
+              <Typography variant="body2">
+                {details?.expenseDetails?.expenseRatio ? 
+                 details.expenseDetails.expenseRatio.toFixed(1) : "N/A"}%
+              </Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={expenseRatioScore * 20} 
+              color={expenseRatioScore >= 3 ? "success" : "warning"}
+              sx={{ height: 8, borderRadius: 1 }}
+            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+              <Typography variant="caption" color="text.secondary">Élevé</Typography>
+              <Typography variant="caption" color="text.secondary">Faible</Typography>
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
+      
+      <Divider sx={{ my: 2 }} />
+      
+      {/* Conseils et recommandations */}
+      <Typography variant="subtitle2" gutterBottom>
+        Conseils et recommandations
+      </Typography>
+      
+      <Box sx={{ mt: 1 }}>
+        {cashflowPerUnitScore < 3 && (
           <Typography variant="body2" paragraph>
-            {summary.cashflowPerUnit < 0 
-              ? "⚠️ Le cashflow négatif est risqué. Considérez augmenter les loyers, réduire les dépenses ou renégocier le financement."
-              : "⚠️ Le cashflow est positif mais sous le seuil recommandé de 75$/porte/mois. Cherchez des moyens d'optimiser les revenus."}
+            • Le cashflow par porte est inférieur à 75$/mois. Cherchez à augmenter les revenus ou à réduire les dépenses.
           </Typography>
         )}
         
-        {expenseRatio > 50 && (
+        {capRateScore < 3 && (
           <Typography variant="body2" paragraph>
-            "⚠️ Votre ratio de dépenses est supérieur à 50%. Examinez quelles dépenses pourraient être réduites."
+            • Le taux de capitalisation est faible. Essayez de négocier un meilleur prix d'achat ou d'optimiser les revenus.
           </Typography>
         )}
         
-        {parseFloat(summary.capRate) < 5 && (
-          <Typography variant="body2">
-            "⚠️ Votre taux de capitalisation est inférieur à 5%. Envisagez de négocier un prix d'achat plus bas ou d'augmenter les revenus."
+        {expenseRatioScore < 3 && (
+          <Typography variant="body2" paragraph>
+            • Le ratio de dépenses est élevé. Identifiez les dépenses qui peuvent être réduites.
           </Typography>
         )}
-      </Paper>
+        
+        {cashOnCashScore < 3 && (
+          <Typography variant="body2" paragraph>
+            • Le rendement sur fonds propres est faible. Explorez différentes structures de financement pour améliorer le rendement.
+          </Typography>
+        )}
+        
+        {summary.isViable && (
+          <Typography variant="body2" paragraph color="success.main">
+            • Cet investissement génère un cashflow positif et respecte le seuil minimal recommandé de 75$/porte/mois.
+          </Typography>
+        )}
+      </Box>
     </Paper>
   );
 };
