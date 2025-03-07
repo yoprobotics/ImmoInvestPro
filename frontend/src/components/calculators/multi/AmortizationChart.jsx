@@ -1,12 +1,13 @@
 import React from 'react';
 import { 
-  Paper, Typography, Box, Divider,
+  Paper, Typography, Box, Divider, Grid,
   Table, TableBody, TableCell, TableContainer, 
   TableHead, TableRow
 } from '@mui/material';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer 
+  Tooltip, Legend, ResponsiveContainer, Line,
+  ComposedChart
 } from 'recharts';
 import { formatNumberWithSpaces } from '../../../utils/formatters';
 
@@ -15,200 +16,213 @@ import { formatNumberWithSpaces } from '../../../utils/formatters';
  * @param {Object} results - Résultats du calcul
  */
 const AmortizationChart = ({ results }) => {
-  if (!results || !results.details || !results.details.amortizationFirstYear) return null;
+  if (!results) return null;
   
   const { details } = results;
-  const { amortizationFirstYear, financing } = details;
   
-  // Préparation des données pour le graphique d'amortissement
-  const chartData = amortizationFirstYear.firstYear.months.map((month) => {
+  // S'il n'y a pas de données d'amortissement, on affiche un message
+  if (!details.amortizationFirstYear || !details.amortizationFirstYear.months) {
+    return (
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          Amortissement du prêt
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Aucune donnée d'amortissement disponible pour ce financement.
+        </Typography>
+      </Paper>
+    );
+  }
+  
+  // Extraire les données d'amortissement
+  const amortizationData = details.amortizationFirstYear.months;
+  
+  // Préparer les données pour le graphique
+  const chartData = amortizationData.map(monthData => {
     return {
-      name: `Mois ${month.month}`,
-      intérêts: parseFloat(month.firstMortgage.interestPayment.toFixed(2)),
-      capital: parseFloat(month.firstMortgage.principalPayment.toFixed(2)),
-      balance: parseFloat(month.firstMortgage.balance.toFixed(2))
+      month: monthData.month,
+      intérêt: monthData.firstMortgage.interestPayment,
+      capital: monthData.firstMortgage.principalPayment,
+      balance: monthData.firstMortgage.balance
     };
   });
   
   // Calcul des totaux pour la première année
-  const totalFirstYearInterest = amortizationFirstYear.firstYear.totalInterest;
-  const totalFirstYearPrincipal = amortizationFirstYear.firstYear.totalPrincipal;
-  const totalFirstYearPayment = totalFirstYearInterest + totalFirstYearPrincipal;
+  const totalInterest = details.amortizationFirstYear.totalInterest || 0;
+  const totalPrincipal = details.amortizationFirstYear.totalPrincipal || 0;
+  const endingBalance = details.amortizationFirstYear.endingBalance?.firstMortgage || 0;
   
-  // Préparation des données pour le ratio capital/intérêts
-  const ratioData = [
-    {
-      name: 'Intérêts',
-      value: totalFirstYearInterest,
-      color: '#FF9800'
-    },
-    {
-      name: 'Capital',
-      value: totalFirstYearPrincipal,
-      color: '#2196F3'
-    }
-  ];
+  // Calcul du ratio intérêt vs capital
+  const interestRatio = totalInterest / (totalInterest + totalPrincipal) * 100;
+  const principalRatio = totalPrincipal / (totalInterest + totalPrincipal) * 100;
   
   return (
     <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
       <Typography variant="h6" gutterBottom>
         Amortissement du prêt
       </Typography>
+      
       <Typography variant="body2" color="text.secondary" paragraph>
-        Décomposition des paiements pour la première année
+        Décomposition des paiements hypothécaires pour la première année
       </Typography>
       
-      {/* Graphique de décomposition des paiements mensuels */}
+      {/* Graphique des paiements mensuels */}
       <Box sx={{ height: 300, mb: 3 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
+          <ComposedChart
             data={chartData}
             margin={{
-              top: 20,
+              top: 5,
               right: 30,
               left: 20,
               bottom: 5,
             }}
           >
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip formatter={(value) => `${formatNumberWithSpaces(value)} $`} />
+            <XAxis dataKey="month" label={{ value: 'Mois', position: 'insideBottom', offset: -5 }} />
+            <YAxis 
+              yAxisId="left" 
+              label={{ value: 'Montant ($)', angle: -90, position: 'insideLeft' }} 
+            />
+            <YAxis 
+              yAxisId="right" 
+              orientation="right" 
+              label={{ value: 'Balance ($)', angle: 90, position: 'insideRight' }} 
+              domain={['auto', 'auto']}
+            />
+            <Tooltip 
+              formatter={(value, name) => [formatNumberWithSpaces(value.toFixed(2)) + ' $', name]}
+            />
             <Legend />
-            <Bar dataKey="intérêts" stackId="a" fill="#FF9800" name="Intérêts" />
-            <Bar dataKey="capital" stackId="a" fill="#2196F3" name="Capital" />
-          </BarChart>
+            <Bar 
+              yAxisId="left" 
+              dataKey="intérêt" 
+              stackId="a" 
+              fill="#FF8042" 
+              name="Intérêt"
+            />
+            <Bar 
+              yAxisId="left" 
+              dataKey="capital" 
+              stackId="a" 
+              fill="#82CA9D" 
+              name="Capital"
+            />
+            <Line 
+              yAxisId="right" 
+              type="monotone" 
+              dataKey="balance" 
+              stroke="#8884d8" 
+              activeDot={{ r: 8 }}
+              name="Balance"
+            />
+          </ComposedChart>
         </ResponsiveContainer>
       </Box>
       
       {/* Résumé de l'amortissement */}
-      <Typography variant="subtitle2" gutterBottom>
-        Résumé des paiements (1ère année)
-      </Typography>
-      <Divider sx={{ mb: 2 }} />
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={6}>
+          <Typography variant="subtitle2" gutterBottom>
+            Résumé de la première année
+          </Typography>
+          <TableContainer component={Paper} variant="outlined">
+            <Table size="small">
+              <TableBody>
+                <TableRow>
+                  <TableCell>Intérêts payés</TableCell>
+                  <TableCell align="right">{formatNumberWithSpaces(totalInterest.toFixed(2))} $</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Capital remboursé</TableCell>
+                  <TableCell align="right">{formatNumberWithSpaces(totalPrincipal.toFixed(2))} $</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Total payé</TableCell>
+                  <TableCell align="right">{formatNumberWithSpaces((totalInterest + totalPrincipal).toFixed(2))} $</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Balance restante</TableCell>
+                  <TableCell align="right">{formatNumberWithSpaces(endingBalance.toFixed(2))} $</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Typography variant="subtitle2" gutterBottom>
+            Répartition intérêt vs capital (1ère année)
+          </Typography>
+          <Box sx={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                layout="vertical"
+                data={[
+                  { name: 'Intérêt', value: interestRatio, amount: totalInterest },
+                  { name: 'Capital', value: principalRatio, amount: totalPrincipal }
+                ]}
+                margin={{
+                  top: 20,
+                  right: 30,
+                  left: 20,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" domain={[0, 100]} unit="%" />
+                <YAxis dataKey="name" type="category" />
+                <Tooltip 
+                  formatter={(value, name, props) => {
+                    if (name === 'value') {
+                      return [`${value.toFixed(1)}%`, 'Pourcentage'];
+                    }
+                    return [props.payload.amount.toFixed(2) + ' $', 'Montant'];
+                  }}
+                />
+                <Bar dataKey="value" fill="#8884d8" name="Pourcentage" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </Grid>
+      </Grid>
       
-      <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
+      {/* Tableau détaillé des paiements mensuels (optionnel) */}
+      <Typography variant="subtitle2" gutterBottom>
+        Détail des paiements mensuels
+      </Typography>
+      <TableContainer component={Paper} variant="outlined">
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Type</TableCell>
-              <TableCell align="right">Montant</TableCell>
-              <TableCell align="right">Pourcentage</TableCell>
+              <TableCell>Mois</TableCell>
+              <TableCell align="right">Paiement</TableCell>
+              <TableCell align="right">Intérêt</TableCell>
+              <TableCell align="right">Capital</TableCell>
+              <TableCell align="right">Balance</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            <TableRow>
-              <TableCell>Intérêts</TableCell>
-              <TableCell align="right">
-                {formatNumberWithSpaces(totalFirstYearInterest)} $
-              </TableCell>
-              <TableCell align="right">
-                {((totalFirstYearInterest / totalFirstYearPayment) * 100).toFixed(1)} %
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Capital</TableCell>
-              <TableCell align="right">
-                {formatNumberWithSpaces(totalFirstYearPrincipal)} $
-              </TableCell>
-              <TableCell align="right">
-                {((totalFirstYearPrincipal / totalFirstYearPayment) * 100).toFixed(1)} %
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                {formatNumberWithSpaces(totalFirstYearPayment)} $
-              </TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>
-                100 %
-              </TableCell>
-            </TableRow>
+            {amortizationData.map((month) => (
+              <TableRow key={month.month}>
+                <TableCell>{month.month}</TableCell>
+                <TableCell align="right">
+                  {formatNumberWithSpaces((month.firstMortgage.interestPayment + month.firstMortgage.principalPayment).toFixed(2))} $
+                </TableCell>
+                <TableCell align="right">
+                  {formatNumberWithSpaces(month.firstMortgage.interestPayment.toFixed(2))} $
+                </TableCell>
+                <TableCell align="right">
+                  {formatNumberWithSpaces(month.firstMortgage.principalPayment.toFixed(2))} $
+                </TableCell>
+                <TableCell align="right">
+                  {formatNumberWithSpaces(month.firstMortgage.balance.toFixed(2))} $
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </TableContainer>
-      
-      {/* Informations sur le prêt */}
-      <Typography variant="subtitle2" gutterBottom>
-        Détails du prêt hypothécaire principal
-      </Typography>
-      <Divider sx={{ mb: 2 }} />
-      
-      <Box sx={{ mb: 3 }}>
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableBody>
-              <TableRow>
-                <TableCell>Montant initial</TableCell>
-                <TableCell align="right">
-                  {formatNumberWithSpaces(financing.firstMortgageAmount)} $
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Taux d'intérêt</TableCell>
-                <TableCell align="right">
-                  {/* Déduction du taux à partir du paiement et du montant */}
-                  {(((financing.firstMortgageMonthlyInterest * 12) / financing.firstMortgageAmount) * 100).toFixed(2)} %
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Paiement mensuel</TableCell>
-                <TableCell align="right">
-                  {formatNumberWithSpaces(financing.firstMortgageMonthlyPayment)} $
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Balance après 1 an</TableCell>
-                <TableCell align="right">
-                  {amortizationFirstYear.firstYear.endingBalance && 
-                   formatNumberWithSpaces(amortizationFirstYear.firstYear.endingBalance.firstMortgage)} $
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Capital remboursé (1ère année)</TableCell>
-                <TableCell align="right">
-                  {formatNumberWithSpaces(totalFirstYearPrincipal)} $
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-      
-      {/* Calcul du rendement par capitalisation */}
-      <Typography variant="subtitle2" gutterBottom>
-        Rendement par capitalisation (1ère année)
-      </Typography>
-      <Divider sx={{ mb: 2 }} />
-      
-      <Box>
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableBody>
-              <TableRow>
-                <TableCell>Capital remboursé</TableCell>
-                <TableCell align="right">
-                  {formatNumberWithSpaces(totalFirstYearPrincipal)} $
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Mise de fonds initiale</TableCell>
-                <TableCell align="right">
-                  {formatNumberWithSpaces(financing.totalDownPayment)} $
-                </TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 'bold' }}>Rendement par capitalisation</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                  {financing.totalDownPayment > 0 ? 
-                   ((totalFirstYearPrincipal / financing.totalDownPayment) * 100).toFixed(2) : 
-                   "N/A"} %
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
     </Paper>
   );
 };
