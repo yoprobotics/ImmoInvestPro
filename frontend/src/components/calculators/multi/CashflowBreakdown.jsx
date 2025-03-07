@@ -2,123 +2,194 @@ import React, { useState } from 'react';
 import { 
   Paper, Typography, Box, Divider, Grid, 
   Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, ToggleButtonGroup, 
-  ToggleButton, Card, CardContent
+  TableHead, TableRow, ToggleButton, ToggleButtonGroup,
+  Tooltip, IconButton, Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
-import { 
-  PieChart, Pie, Cell, Tooltip as RechartsTooltip, 
-  ResponsiveContainer, Legend
-} from 'recharts';
+import {
+  ExpandMore as ExpandMoreIcon,
+  Info as InfoIcon,
+  TrendingUp as TrendingUpIcon,
+  TrendingDown as TrendingDownIcon
+} from '@mui/icons-material';
 import { formatNumberWithSpaces } from '../../../utils/formatters';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip as RechartsTooltip } from 'recharts';
 
 /**
- * Composant affichant la décomposition du cashflow
+ * Composant affichant la décomposition détaillée du cashflow
  * @param {Object} results - Résultats du calcul
  */
 const CashflowBreakdown = ({ results }) => {
-  const [view, setView] = useState('monthly');
-  
   if (!results) return null;
   
-  const { summary, details } = results;
+  const { details } = results;
+  const [timeframe, setTimeframe] = useState('monthly');
   
-  // Changement de vue (mensuel/annuel)
-  const handleViewChange = (event, newView) => {
-    if (newView !== null) {
-      setView(newView);
+  // Conversion en fonction de la période choisie
+  const multiplier = timeframe === 'monthly' ? 1 : 12;
+  
+  // Gestion du changement de période
+  const handleTimeframeChange = (event, newTimeframe) => {
+    if (newTimeframe !== null) {
+      setTimeframe(newTimeframe);
     }
   };
   
-  // Facteur de conversion selon la vue
-  const factor = view === 'monthly' ? 1 : 12;
+  // Préparation des données pour le graphique des revenus
+  const revenueData = [];
   
-  // Formater le montant selon la vue
-  const formatAmount = (amount) => {
-    const value = view === 'monthly' ? amount / 12 : amount;
-    return formatNumberWithSpaces(value);
-  };
-  
-  // Décomposition des revenus pour le graphique
-  const revenueBreakdown = [
-    { name: 'Loyers', value: details.revenueDetails.totalMonthlyUnitRevenue * factor },
-    { name: 'Additionnels', value: details.revenueDetails.totalMonthlyAdditionalRevenue * factor }
-  ].filter(item => item.value > 0);
-  
-  // Décomposition des dépenses pour le graphique
-  const expenseCategories = details.expenseDetails.categories;
-  const expenseBreakdown = Object.entries(expenseCategories)
-    .map(([key, data]) => ({
-      name: getCategoryLabel(key),
-      value: view === 'monthly' ? data.monthlyAmount : data.annualAmount
-    }))
-    .filter(item => item.value > 0)
-    .sort((a, b) => b.value - a.value);
-  
-  // Décomposition du financement pour le graphique
-  const financingBreakdown = [
-    { name: 'Principal', value: details.financing.totalMonthlyPrincipal * factor },
-    { name: 'Intérêts', value: details.financing.totalMonthlyInterest * factor }
-  ];
-  
-  // Couleurs pour les graphiques
-  const COLORS = {
-    revenue: ['#4CAF50', '#8BC34A', '#CDDC39'],
-    expense: ['#F44336', '#FF5722', '#FF9800', '#FFC107', '#FFEB3B', '#9C27B0', '#673AB7'],
-    financing: ['#2196F3', '#03A9F4', '#00BCD4']
-  };
-  
-  // Fonction pour obtenir le libellé d'une catégorie de dépense
-  function getCategoryLabel(category) {
-    const labels = {
-      municipalTaxes: 'Taxes municipales',
-      schoolTaxes: 'Taxes scolaires',
-      insurance: 'Assurances',
-      electricity: 'Électricité',
-      heating: 'Chauffage',
-      water: 'Eau',
-      maintenance: 'Entretien',
-      management: 'Gestion',
-      janitorial: 'Conciergerie',
-      snowRemoval: 'Déneigement',
-      landscaping: 'Aménagement',
-      garbage: 'Ordures',
-      legal: 'Frais juridiques',
-      accounting: 'Comptabilité',
-      advertising: 'Publicité',
-      condo: 'Frais condo',
-      other: 'Autres'
-    };
-    return labels[category] || category;
+  if (details.revenueDetails) {
+    // Revenus de loyer
+    revenueData.push({
+      name: 'Loyers',
+      value: details.revenueDetails.totalMonthlyUnitRevenue * multiplier,
+      color: '#4CAF50'
+    });
+    
+    // Revenus additionnels s'ils existent
+    if (details.revenueDetails.totalMonthlyAdditionalRevenue > 0) {
+      revenueData.push({
+        name: 'Revenus add.',
+        value: details.revenueDetails.totalMonthlyAdditionalRevenue * multiplier,
+        color: '#8BC34A'
+      });
+    }
   }
   
-  // Rendu d'un graphique en camembert
-  const renderPieChart = (data, colors) => {
-    if (!data || data.length === 0) return null;
+  // Préparation des données pour le graphique des dépenses
+  const expenseData = [];
+  
+  if (details.expenseDetails) {
+    // Groupement des catégories de dépenses
+    const expenseCategories = details.expenseDetails.categories;
     
-    return (
-      <ResponsiveContainer width="100%" height={200}>
-        <PieChart>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-            ))}
-          </Pie>
-          <Legend layout="horizontal" verticalAlign="bottom" align="center" />
-          <RechartsTooltip 
-            formatter={(value) => [`${formatNumberWithSpaces(value)} $`, null]}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    );
-  };
+    // Ajout des catégories avec des valeurs non nulles
+    if (expenseCategories) {
+      // Taxes
+      const taxes = (expenseCategories.municipalTaxes?.annualAmount || 0) + 
+                   (expenseCategories.schoolTaxes?.annualAmount || 0);
+      
+      if (taxes > 0) {
+        expenseData.push({
+          name: 'Taxes',
+          value: taxes / (timeframe === 'monthly' ? 12 : 1),
+          color: '#F44336'
+        });
+      }
+      
+      // Services publics
+      const utilities = (expenseCategories.electricity?.annualAmount || 0) + 
+                       (expenseCategories.heating?.annualAmount || 0) + 
+                       (expenseCategories.water?.annualAmount || 0);
+      
+      if (utilities > 0) {
+        expenseData.push({
+          name: 'Services',
+          value: utilities / (timeframe === 'monthly' ? 12 : 1),
+          color: '#FF9800'
+        });
+      }
+      
+      // Assurances
+      if (expenseCategories.insurance?.annualAmount > 0) {
+        expenseData.push({
+          name: 'Assurances',
+          value: expenseCategories.insurance.annualAmount / (timeframe === 'monthly' ? 12 : 1),
+          color: '#FFEB3B'
+        });
+      }
+      
+      // Entretien
+      const maintenance = (expenseCategories.maintenance?.annualAmount || 0) + 
+                         (expenseCategories.janitorial?.annualAmount || 0) + 
+                         (expenseCategories.snowRemoval?.annualAmount || 0) + 
+                         (expenseCategories.landscaping?.annualAmount || 0) + 
+                         (expenseCategories.garbage?.annualAmount || 0);
+      
+      if (maintenance > 0) {
+        expenseData.push({
+          name: 'Entretien',
+          value: maintenance / (timeframe === 'monthly' ? 12 : 1),
+          color: '#FF5722'
+        });
+      }
+      
+      // Gestion
+      const management = (expenseCategories.management?.annualAmount || 0) + 
+                        (expenseCategories.legal?.annualAmount || 0) + 
+                        (expenseCategories.accounting?.annualAmount || 0);
+      
+      if (management > 0) {
+        expenseData.push({
+          name: 'Gestion',
+          value: management / (timeframe === 'monthly' ? 12 : 1),
+          color: '#9C27B0'
+        });
+      }
+      
+      // Autres
+      const other = (expenseCategories.advertising?.annualAmount || 0) + 
+                   (expenseCategories.condoFees?.annualAmount || 0) + 
+                   (expenseCategories.other?.annualAmount || 0);
+      
+      if (other > 0) {
+        expenseData.push({
+          name: 'Autres',
+          value: other / (timeframe === 'monthly' ? 12 : 1),
+          color: '#607D8B'
+        });
+      }
+    }
+  }
+  
+  // Préparation des données pour le graphique du financement
+  const financingData = [];
+  
+  if (details.financing) {
+    // Prêt hypothécaire principal
+    if (details.financing.firstMortgageMonthlyPayment > 0) {
+      financingData.push({
+        name: '1ère hypothèque',
+        value: details.financing.firstMortgageMonthlyPayment * multiplier,
+        color: '#3F51B5'
+      });
+    }
+    
+    // Prêt hypothécaire secondaire
+    if (details.financing.secondMortgageMonthlyPayment > 0) {
+      financingData.push({
+        name: '2ème hypothèque',
+        value: details.financing.secondMortgageMonthlyPayment * multiplier,
+        color: '#2196F3'
+      });
+    }
+    
+    // Balance de vente
+    if (details.financing.sellerFinancingMonthlyPayment > 0) {
+      financingData.push({
+        name: 'Balance de vente',
+        value: details.financing.sellerFinancingMonthlyPayment * multiplier,
+        color: '#03A9F4'
+      });
+    }
+    
+    // Investisseur privé
+    if (details.financing.privateInvestorMonthlyPayment > 0) {
+      financingData.push({
+        name: 'Investisseur privé',
+        value: details.financing.privateInvestorMonthlyPayment * multiplier,
+        color: '#00BCD4'
+      });
+    }
+  }
+  
+  // Calcul du Revenu Net d'Exploitation (RNO)
+  const grossIncome = details.grossMonthlyRent * multiplier;
+  const operatingExpenses = details.operatingExpenses / (timeframe === 'monthly' ? 12 : 1);
+  const netOperatingIncome = grossIncome - operatingExpenses;
+  
+  // Calcul de la décomposition du cashflow
+  const financing = details.financing ? details.financing.totalMonthlyPayment * multiplier : 0;
+  const cashflow = netOperatingIncome - financing;
   
   return (
     <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
@@ -128,230 +199,291 @@ const CashflowBreakdown = ({ results }) => {
         </Typography>
         
         <ToggleButtonGroup
-          value={view}
+          value={timeframe}
           exclusive
-          onChange={handleViewChange}
+          onChange={handleTimeframeChange}
           size="small"
         >
-          <ToggleButton value="monthly">Mensuel</ToggleButton>
-          <ToggleButton value="annual">Annuel</ToggleButton>
+          <ToggleButton value="monthly">
+            Mensuel
+          </ToggleButton>
+          <ToggleButton value="annual">
+            Annuel
+          </ToggleButton>
         </ToggleButtonGroup>
       </Box>
       
-      <Divider sx={{ mb: 3 }} />
-      
-      {/* Tableau récapitulatif du cashflow */}
-      <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: 'background.default' }}>
-              <TableCell colSpan={2}>
-                <Typography variant="subtitle2">
-                  Calcul du cashflow ({view === 'monthly' ? 'mensuel' : 'annuel'})
-                </Typography>
-              </TableCell>
-              <TableCell align="right">Montant</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {/* Revenus */}
-            <TableRow>
-              <TableCell colSpan={2}>
-                <Typography variant="body2" color="primary.main" fontWeight="bold">
-                  Revenus bruts
-                </Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="body2" color="primary.main" fontWeight="bold">
-                  {formatAmount(details.grossAnnualRent)} $
-                </Typography>
-              </TableCell>
-            </TableRow>
-            
-            <TableRow>
-              <TableCell width="5%"></TableCell>
-              <TableCell>Loyers</TableCell>
-              <TableCell align="right">
-                {formatAmount(details.revenueDetails.totalMonthlyUnitRevenue * 12)} $
-              </TableCell>
-            </TableRow>
-            
-            {details.revenueDetails.totalMonthlyAdditionalRevenue > 0 && (
+      {/* Résumé du cashflow */}
+      <Box sx={{ mb: 3 }}>
+        <TableContainer component={Paper} variant="outlined">
+          <Table size="small">
+            <TableHead>
               <TableRow>
-                <TableCell width="5%"></TableCell>
-                <TableCell>Revenus additionnels</TableCell>
-                <TableCell align="right">
-                  {formatAmount(details.revenueDetails.totalMonthlyAdditionalRevenue * 12)} $
+                <TableCell>Composante</TableCell>
+                <TableCell align="right">Montant ({timeframe === 'monthly' ? 'mensuel' : 'annuel'})</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              <TableRow>
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TrendingUpIcon color="success" sx={{ mr: 1 }} />
+                    Revenu brut
+                  </Box>
+                </TableCell>
+                <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                  {formatNumberWithSpaces(grossIncome)} $
                 </TableCell>
               </TableRow>
-            )}
-            
-            {/* Dépenses */}
-            <TableRow>
-              <TableCell colSpan={2}>
-                <Typography variant="body2" color="error.main" fontWeight="bold">
-                  Dépenses d'exploitation
-                </Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="body2" color="error.main" fontWeight="bold">
-                  {formatAmount(details.operatingExpenses)} $
-                </Typography>
-              </TableCell>
-            </TableRow>
-            
-            {/* Principales dépenses (top 5) */}
-            {Object.entries(expenseCategories)
-              .sort((a, b) => b[1].annualAmount - a[1].annualAmount)
-              .slice(0, 5)
-              .map(([category, data], index) => (
-                <TableRow key={category}>
-                  <TableCell width="5%"></TableCell>
-                  <TableCell>{getCategoryLabel(category)}</TableCell>
-                  <TableCell align="right">
-                    {view === 'monthly' ? formatNumberWithSpaces(data.monthlyAmount) : formatNumberWithSpaces(data.annualAmount)} $
-                  </TableCell>
-                </TableRow>
-              ))}
-            
-            {/* Revenu net d'exploitation */}
-            <TableRow sx={{ bgcolor: 'background.default' }}>
-              <TableCell colSpan={2}>
-                <Typography variant="body2" fontWeight="bold">
-                  Revenu net d'exploitation (RNO)
-                </Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="body2" fontWeight="bold">
-                  {formatAmount(details.netOperatingIncome)} $
-                </Typography>
-              </TableCell>
-            </TableRow>
-            
-            {/* Financement */}
-            <TableRow>
-              <TableCell colSpan={2}>
-                <Typography variant="body2" color="info.main" fontWeight="bold">
-                  Paiements financiers
-                </Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="body2" color="info.main" fontWeight="bold">
-                  {formatAmount(details.financing.totalAnnualPayment)} $
-                </Typography>
-              </TableCell>
-            </TableRow>
-            
-            <TableRow>
-              <TableCell width="5%"></TableCell>
-              <TableCell>Hypothèque principale</TableCell>
-              <TableCell align="right">
-                {formatAmount(details.financing.firstMortgageMonthlyPayment * 12)} $
-              </TableCell>
-            </TableRow>
-            
-            {details.financing.secondMortgageMonthlyPayment > 0 && (
+              
               <TableRow>
-                <TableCell width="5%"></TableCell>
-                <TableCell>Hypothèque secondaire</TableCell>
-                <TableCell align="right">
-                  {formatAmount(details.financing.secondMortgageMonthlyPayment * 12)} $
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TrendingDownIcon color="error" sx={{ mr: 1 }} />
+                    Dépenses d'exploitation
+                  </Box>
+                </TableCell>
+                <TableCell align="right" sx={{ color: 'error.main', fontWeight: 'bold' }}>
+                  -{formatNumberWithSpaces(operatingExpenses)} $
                 </TableCell>
               </TableRow>
-            )}
-            
-            {details.financing.sellerFinancingMonthlyPayment > 0 && (
+              
               <TableRow>
-                <TableCell width="5%"></TableCell>
-                <TableCell>Balance de vente</TableCell>
-                <TableCell align="right">
-                  {formatAmount(details.financing.sellerFinancingMonthlyPayment * 12)} $
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    Revenu net d'exploitation (RNO)
+                    <Tooltip title="Revenu brut moins les dépenses d'exploitation">
+                      <IconButton size="small">
+                        <InfoIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                  {formatNumberWithSpaces(netOperatingIncome)} $
                 </TableCell>
               </TableRow>
-            )}
-            
-            {details.financing.privateInvestorMonthlyPayment > 0 && (
+              
               <TableRow>
-                <TableCell width="5%"></TableCell>
-                <TableCell>Investisseur privé</TableCell>
-                <TableCell align="right">
-                  {formatAmount(details.financing.privateInvestorMonthlyPayment * 12)} $
+                <TableCell>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <TrendingDownIcon color="error" sx={{ mr: 1 }} />
+                    Coûts de financement
+                  </Box>
+                </TableCell>
+                <TableCell align="right" sx={{ color: 'error.main', fontWeight: 'bold' }}>
+                  -{formatNumberWithSpaces(financing)} $
                 </TableCell>
               </TableRow>
-            )}
-            
-            {/* Cashflow final */}
-            <TableRow sx={{ bgcolor: summary.monthlyCashflow >= 0 ? 'success.light' : 'error.light' }}>
-              <TableCell colSpan={2}>
-                <Typography variant="subtitle2">
+              
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold' }}>
                   Cashflow
-                </Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography variant="subtitle2" color={summary.monthlyCashflow >= 0 ? 'success.main' : 'error.main'}>
-                  {formatAmount(details.annualCashflow)} $
-                </Typography>
-              </TableCell>
-            </TableRow>
-            
-            {/* Par porte */}
-            <TableRow>
-              <TableCell colSpan={2}>
-                <Typography variant="body2">
-                  Cashflow par porte {view === 'monthly' ? '(mensuel)' : '(annuel)'}
-                </Typography>
-              </TableCell>
-              <TableCell align="right">
-                <Typography 
-                  variant="body2"
-                  color={summary.cashflowPerUnit >= 75 ? 'success.main' : 
-                        summary.cashflowPerUnit >= 0 ? 'warning.main' : 'error.main'}
+                </TableCell>
+                <TableCell 
+                  align="right" 
+                  sx={{ 
+                    fontWeight: 'bold',
+                    color: cashflow >= 0 ? 'success.main' : 'error.main'
+                  }}
                 >
-                  {view === 'monthly' ? 
-                    formatNumberWithSpaces(summary.cashflowPerUnit) : 
-                    formatNumberWithSpaces(summary.cashflowPerUnit * 12)} $ / porte
-                </Typography>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
+                  {formatNumberWithSpaces(cashflow)} $
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
       
-      {/* Graphiques */}
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
-          <Card variant="outlined">
-            <CardContent>
+      {/* Décomposition graphique */}
+      <Accordion defaultExpanded>
+        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <Typography variant="subtitle1">Analyse graphique</Typography>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Grid container spacing={3}>
+            {/* Graphique des revenus */}
+            <Grid item xs={12} md={4}>
               <Typography variant="subtitle2" align="center" gutterBottom>
                 Revenus
               </Typography>
-              {renderPieChart(revenueBreakdown, COLORS.revenue)}
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={4}>
-          <Card variant="outlined">
-            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={revenueData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {revenueData.map((entry, index) => (
+                      <Cell key={`cell-revenue-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend layout="vertical" verticalAlign="middle" align="right" />
+                  <RechartsTooltip formatter={(value) => `${formatNumberWithSpaces(value)} $`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Grid>
+            
+            {/* Graphique des dépenses */}
+            <Grid item xs={12} md={4}>
               <Typography variant="subtitle2" align="center" gutterBottom>
                 Dépenses
               </Typography>
-              {renderPieChart(expenseBreakdown.slice(0, 6), COLORS.expense)}
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} sm={4}>
-          <Card variant="outlined">
-            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={expenseData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {expenseData.map((entry, index) => (
+                      <Cell key={`cell-expense-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend layout="vertical" verticalAlign="middle" align="right" />
+                  <RechartsTooltip formatter={(value) => `${formatNumberWithSpaces(value)} $`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Grid>
+            
+            {/* Graphique du financement */}
+            <Grid item xs={12} md={4}>
               <Typography variant="subtitle2" align="center" gutterBottom>
                 Financement
               </Typography>
-              {renderPieChart(financingBreakdown, COLORS.financing)}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={financingData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {financingData.map((entry, index) => (
+                      <Cell key={`cell-financing-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend layout="vertical" verticalAlign="middle" align="right" />
+                  <RechartsTooltip formatter={(value) => `${formatNumberWithSpaces(value)} $`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Grid>
+          </Grid>
+        </AccordionDetails>
+      </Accordion>
+      
+      {/* Détail des coûts de financement */}
+      {details.financing && (
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="subtitle1">Détail des coûts de financement</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Source</TableCell>
+                    <TableCell align="right">Capital</TableCell>
+                    <TableCell align="right">Intérêts</TableCell>
+                    <TableCell align="right">Total</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {/* Prêt hypothécaire principal */}
+                  {details.financing.firstMortgageMonthlyPayment > 0 && (
+                    <TableRow>
+                      <TableCell>1ère hypothèque</TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.firstMortgageMonthlyPrincipal * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.firstMortgageMonthlyInterest * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.firstMortgageMonthlyPayment * multiplier)} $
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Prêt hypothécaire secondaire */}
+                  {details.financing.secondMortgageMonthlyPayment > 0 && (
+                    <TableRow>
+                      <TableCell>2ème hypothèque</TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.secondMortgageMonthlyPrincipal * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.secondMortgageMonthlyInterest * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.secondMortgageMonthlyPayment * multiplier)} $
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Balance de vente */}
+                  {details.financing.sellerFinancingMonthlyPayment > 0 && (
+                    <TableRow>
+                      <TableCell>Balance de vente</TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.sellerFinancingMonthlyPrincipal * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.sellerFinancingMonthlyInterest * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.sellerFinancingMonthlyPayment * multiplier)} $
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Investisseur privé */}
+                  {details.financing.privateInvestorMonthlyPayment > 0 && (
+                    <TableRow>
+                      <TableCell>Investisseur privé</TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.privateInvestorMonthlyPrincipal * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.privateInvestorMonthlyInterest * multiplier)} $
+                      </TableCell>
+                      <TableCell align="right">
+                        {formatNumberWithSpaces(details.financing.privateInvestorMonthlyPayment * multiplier)} $
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  
+                  {/* Totaux */}
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold' }}>Total</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                      {formatNumberWithSpaces(details.financing.totalMonthlyPrincipal * multiplier)} $
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                      {formatNumberWithSpaces(details.financing.totalMonthlyInterest * multiplier)} $
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                      {formatNumberWithSpaces(details.financing.totalMonthlyPayment * multiplier)} $
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </AccordionDetails>
+        </Accordion>
+      )}
     </Paper>
   );
 };
