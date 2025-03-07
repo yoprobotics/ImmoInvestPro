@@ -1,426 +1,348 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
-  Grid, TextField, Typography, Paper, Box, Divider, IconButton, 
-  Button, Table, TableBody, TableCell, TableContainer, TableHead, 
-  TableRow, Switch, FormControlLabel
+  Typography, Grid, TextField, InputAdornment,
+  Button, IconButton, Paper, Box, Divider, 
+  Table, TableBody, TableCell, TableContainer, 
+  TableHead, TableRow, Tooltip
 } from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { formatNumberWithSpaces } from '../../../utils/formatters';
+import { 
+  Add as AddIcon, 
+  Delete as DeleteIcon,
+  Info as InfoIcon
+} from '@mui/icons-material';
 
 /**
- * Formulaire pour la saisie des revenus de l'immeuble
- * @param {Object} revenueData - Les données de revenus actuelles
- * @param {Function} setRevenueData - Fonction pour mettre à jour les données de revenus
- * @param {number} numberOfUnits - Nombre d'unités dans l'immeuble
+ * Formulaire pour saisir les revenus d'un immeuble MULTI
  */
-const RevenueForm = ({ revenueData, setRevenueData, numberOfUnits }) => {
+const RevenueForm = ({ propertyData, updatePropertyData }) => {
+  // État local pour gérer les unités (logements)
+  const [units, setUnits] = useState(propertyData.unitDetails || []);
   
-  // Mise à jour des unités si le nombre d'unités change
-  useEffect(() => {
-    if (numberOfUnits > 0) {
-      // Ajuster le nombre d'unités dans le tableau des revenus
-      const currentUnitCount = revenueData.units.length;
-      
-      if (currentUnitCount < numberOfUnits) {
-        // Ajouter des unités manquantes
-        const newUnits = [...revenueData.units];
-        
-        for (let i = currentUnitCount; i < numberOfUnits; i++) {
-          newUnits.push({
-            id: i + 1,
-            unitNumber: `${i + 1}`,
-            type: '3 1/2',
-            monthlyRent: 0,
-            isOccupied: true
-          });
-        }
-        
-        setRevenueData(prev => ({ ...prev, units: newUnits }));
-      } else if (currentUnitCount > numberOfUnits) {
-        // Réduire le nombre d'unités
-        const newUnits = revenueData.units.slice(0, numberOfUnits);
-        setRevenueData(prev => ({ ...prev, units: newUnits }));
-      }
-    }
-  }, [numberOfUnits]);
-  
-  // Gestion des changements dans les unités
-  const handleUnitChange = (index, field, value) => {
-    const updatedUnits = [...revenueData.units];
+  // Fonction pour mettre à jour les données des logements
+  const updateUnitDetails = (updatedUnits) => {
+    setUnits(updatedUnits);
     
-    // Conversion en nombre pour les champs numériques
-    if (field === 'monthlyRent') {
-      updatedUnits[index][field] = value === '' ? 0 : Number(value);
-    } else if (field === 'isOccupied') {
-      updatedUnits[index][field] = value;
-    } else {
-      updatedUnits[index][field] = value;
-    }
+    // Calculer le revenu brut total
+    const totalRent = updatedUnits.reduce((sum, unit) => sum + (unit.rent || 0), 0);
     
-    setRevenueData(prev => ({ ...prev, units: updatedUnits }));
+    // Mettre à jour les données de la propriété
+    updatePropertyData(null, 'unitDetails', updatedUnits);
+    updatePropertyData(null, 'grossRevenue', totalRent * 12); // Revenu annuel
   };
   
-  // Gestion des changements dans le taux d'inoccupation
-  const handleVacancyRateChange = (e) => {
-    const value = e.target.value === '' ? 0 : Number(e.target.value);
-    setRevenueData(prev => ({ ...prev, vacancyRate: value }));
-  };
-  
-  // Ajout d'un revenu additionnel
-  const addAdditionalRevenue = () => {
-    const newAdditionalRevenue = {
-      id: revenueData.additionalRevenues.length + 1,
+  // Ajouter un nouveau logement
+  const addUnit = () => {
+    const newUnit = {
+      id: Date.now(), // Identifiant unique
+      unitNumber: '',
       type: '',
-      monthlyRevenue: 0,
-      count: 1,
+      bedrooms: 1,
+      bathrooms: 1,
+      rent: 0,
+      isRented: false,
       notes: ''
     };
     
-    setRevenueData(prev => ({
-      ...prev,
-      additionalRevenues: [...prev.additionalRevenues, newAdditionalRevenue]
-    }));
+    const updatedUnits = [...units, newUnit];
+    updateUnitDetails(updatedUnits);
   };
   
-  // Suppression d'un revenu additionnel
-  const removeAdditionalRevenue = (index) => {
-    const updatedRevenues = [...revenueData.additionalRevenues];
-    updatedRevenues.splice(index, 1);
-    
-    setRevenueData(prev => ({
-      ...prev,
-      additionalRevenues: updatedRevenues
-    }));
+  // Supprimer un logement
+  const deleteUnit = (unitId) => {
+    const updatedUnits = units.filter(unit => unit.id !== unitId);
+    updateUnitDetails(updatedUnits);
   };
   
-  // Gestion des changements dans les revenus additionnels
-  const handleAdditionalRevenueChange = (index, field, value) => {
-    const updatedRevenues = [...revenueData.additionalRevenues];
+  // Mettre à jour les données d'un logement
+  const updateUnit = (unitId, field, value) => {
+    const updatedUnits = units.map(unit => {
+      if (unit.id === unitId) {
+        return { ...unit, [field]: value };
+      }
+      return unit;
+    });
     
-    // Conversion en nombre pour les champs numériques
-    if (field === 'monthlyRevenue' || field === 'count') {
-      updatedRevenues[index][field] = value === '' ? 0 : Number(value);
-    } else {
-      updatedRevenues[index][field] = value;
-    }
-    
-    setRevenueData(prev => ({
-      ...prev,
-      additionalRevenues: updatedRevenues
-    }));
+    updateUnitDetails(updatedUnits);
   };
   
-  // Calcul du total des revenus de loyer mensuels
-  const totalMonthlyRent = revenueData.units.reduce(
-    (sum, unit) => sum + (unit.isOccupied ? unit.monthlyRent : 0), 
-    0
-  );
+  // Mettre à jour un champ simple
+  const handleChange = (field, value) => {
+    updatePropertyData(null, field, value);
+  };
   
-  // Calcul du total potentiel des revenus de loyer mensuels (si tous occupés)
-  const totalPotentialMonthlyRent = revenueData.units.reduce(
-    (sum, unit) => sum + unit.monthlyRent, 
-    0
-  );
-  
-  // Calcul du total des revenus additionnels mensuels
-  const totalAdditionalMonthlyRevenue = revenueData.additionalRevenues.reduce(
-    (sum, revenue) => sum + (revenue.monthlyRevenue * revenue.count), 
-    0
-  );
-  
-  // Calcul du revenu brut mensuel
-  const totalMonthlyRevenue = totalMonthlyRent + totalAdditionalMonthlyRevenue;
-  
-  // Calcul du revenu brut annuel
-  const totalAnnualRevenue = totalMonthlyRevenue * 12;
-  
-  // Types d'unités courantes au Québec
-  const unitTypes = [
-    '1 1/2', '2 1/2', '3 1/2', '4 1/2', '5 1/2', '6 1/2', 
-    'Studio', 'Loft', 'Maison', 'Autre'
-  ];
-  
-  // Types de revenus additionnels courants
-  const additionalRevenueTypes = [
-    'Stationnement', 'Buanderie', 'Stockage', 'Antenne', 'Autre'
-  ];
+  // Mettre à jour des revenus additionnels
+  const handleAdditionalRevenueChange = (field, value) => {
+    const updatedOtherRevenues = {
+      ...propertyData.otherRevenues,
+      [field]: value
+    };
+    
+    // Calculer le total des revenus additionnels
+    const totalOtherRevenue = Object.values(updatedOtherRevenues).reduce((sum, val) => sum + (val || 0), 0);
+    
+    updatePropertyData(null, 'otherRevenues', updatedOtherRevenues);
+    updatePropertyData(null, 'otherRevenue', totalOtherRevenue);
+  };
   
   return (
-    <Box>
-      <Typography variant="h6" gutterBottom>
-        Revenus de location
-      </Typography>
-      <Typography variant="body2" color="text.secondary" paragraph>
-        Saisissez les revenus de loyer pour chaque unité ainsi que les revenus additionnels.
-      </Typography>
-      
-      {/* Section des unités */}
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
         <Typography variant="subtitle1" gutterBottom>
-          Unités locatives
+          Revenus des logements
         </Typography>
-        
-        <TableContainer>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Entrez les détails de chaque logement et son loyer mensuel.
+        </Typography>
+      </Grid>
+      
+      <Grid item xs={12}>
+        <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell width="15%">N° d'unité</TableCell>
-                <TableCell width="20%">Type</TableCell>
-                <TableCell width="20%">Loyer mensuel</TableCell>
-                <TableCell width="15%">Occupé</TableCell>
-                <TableCell width="30%">Notes</TableCell>
+                <TableCell>N° Logement</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell align="center">Ch.</TableCell>
+                <TableCell align="center">SdB</TableCell>
+                <TableCell align="right">Loyer mensuel</TableCell>
+                <TableCell align="center">Loué</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {revenueData.units.map((unit, index) => (
-                <TableRow key={unit.id}>
-                  <TableCell>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={unit.unitNumber}
-                      onChange={(e) => handleUnitChange(index, 'unitNumber', e.target.value)}
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      select
-                      value={unit.type}
-                      onChange={(e) => handleUnitChange(index, 'type', e.target.value)}
-                      variant="outlined"
-                      SelectProps={{
-                        native: true,
-                      }}
-                    >
-                      {unitTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      type="number"
-                      value={unit.monthlyRent}
-                      onChange={(e) => handleUnitChange(index, 'monthlyRent', e.target.value)}
-                      variant="outlined"
-                      InputProps={{
-                        startAdornment: '$',
-                        inputProps: { min: 0 }
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={unit.isOccupied}
-                          onChange={(e) => handleUnitChange(index, 'isOccupied', e.target.checked)}
-                          color="primary"
-                        />
-                      }
-                      label=""
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={unit.notes || ''}
-                      onChange={(e) => handleUnitChange(index, 'notes', e.target.value)}
-                      variant="outlined"
-                      placeholder="Notes optionnelles"
-                    />
+              {units.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                      Aucun logement ajouté. Utilisez le bouton ci-dessous pour ajouter des logements.
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                units.map((unit) => (
+                  <TableRow key={unit.id}>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        variant="outlined"
+                        value={unit.unitNumber}
+                        onChange={(e) => updateUnit(unit.id, 'unitNumber', e.target.value)}
+                        placeholder="101"
+                        inputProps={{ style: { textAlign: 'left' } }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        variant="outlined"
+                        value={unit.type}
+                        onChange={(e) => updateUnit(unit.id, 'type', e.target.value)}
+                        placeholder="3½"
+                        inputProps={{ style: { textAlign: 'left' } }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <TextField
+                        size="small"
+                        type="number"
+                        variant="outlined"
+                        value={unit.bedrooms}
+                        onChange={(e) => updateUnit(unit.id, 'bedrooms', parseInt(e.target.value) || 0)}
+                        inputProps={{ style: { textAlign: 'center' }, min: 0 }}
+                        sx={{ width: '60px' }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <TextField
+                        size="small"
+                        type="number"
+                        variant="outlined"
+                        value={unit.bathrooms}
+                        onChange={(e) => updateUnit(unit.id, 'bathrooms', parseFloat(e.target.value) || 0)}
+                        inputProps={{ style: { textAlign: 'center' }, min: 0, step: 0.5 }}
+                        sx={{ width: '60px' }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <TextField
+                        size="small"
+                        type="number"
+                        variant="outlined"
+                        value={unit.rent}
+                        onChange={(e) => updateUnit(unit.id, 'rent', parseFloat(e.target.value) || 0)}
+                        InputProps={{
+                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                        }}
+                        inputProps={{ style: { textAlign: 'right' }, min: 0 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <TextField
+                        select
+                        size="small"
+                        variant="outlined"
+                        value={unit.isRented ? 'oui' : 'non'}
+                        onChange={(e) => updateUnit(unit.id, 'isRented', e.target.value === 'oui')}
+                        SelectProps={{ native: true }}
+                        sx={{ width: '80px' }}
+                      >
+                        <option value="oui">Oui</option>
+                        <option value="non">Non</option>
+                      </TextField>
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton 
+                        size="small" 
+                        color="error" 
+                        onClick={() => deleteUnit(unit.id)}
+                        aria-label="Supprimer le logement"
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
         
-        <Box sx={{ mt: 2 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={4}>
-              <TextField
-                fullWidth
-                label="Taux d'inoccupation (%)"
-                value={revenueData.vacancyRate}
-                onChange={handleVacancyRateChange}
-                type="number"
-                InputProps={{
-                  inputProps: { min: 0, max: 100, step: 0.1 }
-                }}
-                helperText="Taux d'inoccupation prévu"
-              />
-            </Grid>
-          </Grid>
-        </Box>
-      </Paper>
-      
-      {/* Section des revenus additionnels */}
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="subtitle1">
-            Revenus additionnels
-          </Typography>
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-start' }}>
           <Button 
+            variant="outlined" 
             startIcon={<AddIcon />} 
-            onClick={addAdditionalRevenue}
-            color="primary"
-            variant="outlined"
+            onClick={addUnit}
             size="small"
           >
-            Ajouter
+            Ajouter un logement
           </Button>
         </Box>
-        
-        {revenueData.additionalRevenues.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" sx={{ my: 2, fontStyle: 'italic' }}>
-            Aucun revenu additionnel. Cliquez sur "Ajouter" pour en ajouter.
-          </Typography>
-        ) : (
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell width="25%">Type</TableCell>
-                  <TableCell width="20%">Revenu mensuel</TableCell>
-                  <TableCell width="15%">Quantité</TableCell>
-                  <TableCell width="30%">Notes</TableCell>
-                  <TableCell width="10%">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {revenueData.additionalRevenues.map((revenue, index) => (
-                  <TableRow key={revenue.id}>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        select
-                        value={revenue.type}
-                        onChange={(e) => handleAdditionalRevenueChange(index, 'type', e.target.value)}
-                        variant="outlined"
-                        SelectProps={{
-                          native: true,
-                        }}
-                      >
-                        <option value="">Sélectionner...</option>
-                        {additionalRevenueTypes.map((type) => (
-                          <option key={type} value={type}>
-                            {type}
-                          </option>
-                        ))}
-                      </TextField>
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        value={revenue.monthlyRevenue}
-                        onChange={(e) => handleAdditionalRevenueChange(index, 'monthlyRevenue', e.target.value)}
-                        variant="outlined"
-                        InputProps={{
-                          startAdornment: '$',
-                          inputProps: { min: 0 }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        value={revenue.count}
-                        onChange={(e) => handleAdditionalRevenueChange(index, 'count', e.target.value)}
-                        variant="outlined"
-                        InputProps={{
-                          inputProps: { min: 1 }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        value={revenue.notes || ''}
-                        onChange={(e) => handleAdditionalRevenueChange(index, 'notes', e.target.value)}
-                        variant="outlined"
-                        placeholder="Notes optionnelles"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton 
-                        size="small" 
-                        color="error" 
-                        onClick={() => removeAdditionalRevenue(index)}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-      </Paper>
+      </Grid>
+      
+      <Grid item xs={12}>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="subtitle1" gutterBottom>
+          Revenus additionnels
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Ajoutez d'autres sources de revenus annuels comme les stationnements, la buanderie, etc.
+        </Typography>
+      </Grid>
+      
+      {/* Revenus de stationnement */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Stationnements"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.otherRevenues?.parking || ''}
+          onChange={(e) => handleAdditionalRevenueChange('parking', parseFloat(e.target.value) || 0)}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            endAdornment: (
+              <InputAdornment position="end">
+                <Tooltip title="Revenus annuels des stationnements">
+                  <InfoIcon fontSize="small" color="action" />
+                </Tooltip>
+              </InputAdornment>
+            ),
+          }}
+          helperText="Revenus annuels des stationnements"
+        />
+      </Grid>
+      
+      {/* Revenus de buanderie */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Buanderie"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.otherRevenues?.laundry || ''}
+          onChange={(e) => handleAdditionalRevenueChange('laundry', parseFloat(e.target.value) || 0)}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            endAdornment: (
+              <InputAdornment position="end">
+                <Tooltip title="Revenus annuels de la buanderie">
+                  <InfoIcon fontSize="small" color="action" />
+                </Tooltip>
+              </InputAdornment>
+            ),
+          }}
+          helperText="Revenus annuels de la buanderie"
+        />
+      </Grid>
+      
+      {/* Stockage */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Stockage"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.otherRevenues?.storage || ''}
+          onChange={(e) => handleAdditionalRevenueChange('storage', parseFloat(e.target.value) || 0)}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            endAdornment: (
+              <InputAdornment position="end">
+                <Tooltip title="Revenus annuels des espaces de stockage">
+                  <InfoIcon fontSize="small" color="action" />
+                </Tooltip>
+              </InputAdornment>
+            ),
+          }}
+          helperText="Revenus annuels des espaces de stockage"
+        />
+      </Grid>
+      
+      {/* Autres revenus */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Autres revenus"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.otherRevenues?.other || ''}
+          onChange={(e) => handleAdditionalRevenueChange('other', parseFloat(e.target.value) || 0)}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            endAdornment: (
+              <InputAdornment position="end">
+                <Tooltip title="Autres revenus annuels">
+                  <InfoIcon fontSize="small" color="action" />
+                </Tooltip>
+              </InputAdornment>
+            ),
+          }}
+          helperText="Autres revenus annuels"
+        />
+      </Grid>
       
       {/* Résumé des revenus */}
-      <Paper variant="outlined" sx={{ p: 3, bgcolor: 'background.default' }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Résumé des revenus
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Revenu de loyer mensuel:</strong>
-            </Typography>
-            <Typography variant="h6" color="primary.main">
-              {formatNumberWithSpaces(totalMonthlyRent)} $
-            </Typography>
+      <Grid item xs={12}>
+        <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'action.hover' }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="subtitle2">Revenus bruts des loyers</Typography>
+              <Typography variant="h6">{(propertyData.grossRevenue || 0).toLocaleString()} $ / an</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="subtitle2">Revenus additionnels</Typography>
+              <Typography variant="h6">{(propertyData.otherRevenue || 0).toLocaleString()} $ / an</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography variant="subtitle2">Revenus totaux</Typography>
+              <Typography variant="h6" color="primary.main">
+                {((propertyData.grossRevenue || 0) + (propertyData.otherRevenue || 0)).toLocaleString()} $ / an
+              </Typography>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Revenus additionnels:</strong>
-            </Typography>
-            <Typography variant="h6" color="primary.main">
-              {formatNumberWithSpaces(totalAdditionalMonthlyRevenue)} $
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Revenu mensuel total:</strong>
-            </Typography>
-            <Typography variant="h6" color="primary.main">
-              {formatNumberWithSpaces(totalMonthlyRevenue)} $
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Revenu annuel total:</strong>
-            </Typography>
-            <Typography variant="h6" color="primary.main">
-              {formatNumberWithSpaces(totalAnnualRevenue)} $
-            </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Typography variant="body2">
-              <strong>Taux d'inoccupation prévu:</strong> {revenueData.vacancyRate}%
-            </Typography>
-          </Grid>
-        </Grid>
-      </Paper>
-    </Box>
+        </Paper>
+      </Grid>
+    </Grid>
   );
 };
 
