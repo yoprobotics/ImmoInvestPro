@@ -13,6 +13,7 @@ class MultiDetailedCalculator {
    * @param {Array} data.revenueDetails.units Liste des unités avec leurs loyers
    * @param {Array} data.revenueDetails.additionalRevenues Revenus additionnels (stationnement, buanderie, etc.)
    * @param {number} data.revenueDetails.vacancyRate Taux d'inoccupation global (%)
+   * @param {Object} data.expenseDetails Détails des dépenses
    * @param {number} data.renovationCost Coût des rénovations (optionnel)
    * @param {Object} data.financing Informations sur le financement (optionnel)
    * @param {Object} data.financing.firstMortgage Premier prêt hypothécaire
@@ -32,9 +33,14 @@ class MultiDetailedCalculator {
     const grossAnnualRent = revenueDetails.totalAnnualRevenue;
     const numberOfUnits = (data.revenueDetails?.units || []).length;
     
-    // Calcul des dépenses opérationnelles (utilise encore le ratio simplifié)
-    const expenseRatio = this._getExpenseRatio(numberOfUnits);
-    const operatingExpenses = grossAnnualRent * expenseRatio;
+    // Calcul détaillé des dépenses
+    const expenseDetails = this._calculateDetailedExpenses(data.expenseDetails, {
+      grossAnnualRent,
+      numberOfUnits,
+      purchasePrice
+    });
+    
+    const operatingExpenses = expenseDetails.totalAnnualExpenses;
     const netOperatingIncome = grossAnnualRent - operatingExpenses;
     
     // Configuration du financement
@@ -82,8 +88,10 @@ class MultiDetailedCalculator {
         grossAnnualRent: revenueDetails.totalAnnualRevenue,
         grossMonthlyRent: revenueDetails.totalMonthlyRevenue,
         
-        // Dépenses
+        // Dépenses détaillées
+        expenseDetails: expenseDetails,
         operatingExpenses,
+        expenseRatio: operatingExpenses / grossAnnualRent * 100,
         netOperatingIncome,
         
         // Financement
@@ -197,6 +205,119 @@ class MultiDetailedCalculator {
     result.totalAnnualRevenue = result.totalMonthlyRevenue * 12;
     
     return result;
+  }
+  
+  /**
+   * Calcule les dépenses détaillées à partir des données d'entrée
+   * @param {Object} expenseData Détails des dépenses
+   * @param {Object} propertyInfo Informations sur la propriété
+   * @returns {Object} Dépenses calculées
+   */
+  static _calculateDetailedExpenses(expenseData = {}, propertyInfo = {}) {
+    const { grossAnnualRent, numberOfUnits, purchasePrice } = propertyInfo;
+    
+    // Vérification si des dépenses détaillées ont été fournies
+    const hasDetailedExpenses = expenseData && Object.keys(expenseData).length > 0;
+    
+    // Initialisation du résultat
+    const result = {
+      categories: {},
+      totalAnnualExpenses: 0,
+      totalMonthlyExpenses: 0,
+      expenseRatio: 0
+    };
+    
+    // Si aucune dépense détaillée n'est fournie, utiliser l'approche par ratio
+    if (!hasDetailedExpenses && grossAnnualRent) {
+      const defaultRatio = this._getExpenseRatio(numberOfUnits);
+      result.totalAnnualExpenses = grossAnnualRent * defaultRatio;
+      result.totalMonthlyExpenses = result.totalAnnualExpenses / 12;
+      result.expenseRatio = defaultRatio * 100;
+      
+      // Créer une répartition par défaut des dépenses
+      result.categories = this._createDefaultExpenseBreakdown(result.totalAnnualExpenses, purchasePrice);
+      return result;
+    }
+    
+    // Traitement des dépenses détaillées
+    const processCategory = (category, amount) => {
+      const annualAmount = amount || 0;
+      result.categories[category] = {
+        annualAmount,
+        monthlyAmount: annualAmount / 12
+      };
+      result.totalAnnualExpenses += annualAmount;
+    };
+    
+    // Traitement de chaque catégorie de dépense
+    processCategory('municipalTaxes', expenseData.municipalTaxes);
+    processCategory('schoolTaxes', expenseData.schoolTaxes);
+    processCategory('insurance', expenseData.insurance);
+    processCategory('electricity', expenseData.electricity);
+    processCategory('heating', expenseData.heating);
+    processCategory('water', expenseData.water);
+    processCategory('maintenance', expenseData.maintenance);
+    processCategory('management', expenseData.management);
+    processCategory('janitorial', expenseData.janitorial);
+    processCategory('snowRemoval', expenseData.snowRemoval);
+    processCategory('landscaping', expenseData.landscaping);
+    processCategory('garbage', expenseData.garbage);
+    processCategory('legal', expenseData.legal);
+    processCategory('accounting', expenseData.accounting);
+    processCategory('advertising', expenseData.advertising);
+    processCategory('condo', expenseData.condoFees);
+    processCategory('other', expenseData.other);
+    
+    // Calcul du total mensuel et du ratio
+    result.totalMonthlyExpenses = result.totalAnnualExpenses / 12;
+    result.expenseRatio = grossAnnualRent ? (result.totalAnnualExpenses / grossAnnualRent) * 100 : 0;
+    
+    return result;
+  }
+  
+  /**
+   * Crée une répartition par défaut des dépenses basée sur les règles générales du marché
+   * @param {number} totalAnnualExpenses Total des dépenses annuelles
+   * @param {number} purchasePrice Prix d'achat de l'immeuble
+   * @returns {Object} Répartition par défaut des dépenses par catégorie
+   */
+  static _createDefaultExpenseBreakdown(totalAnnualExpenses, purchasePrice) {
+    const expenseBreakdown = {
+      municipalTaxes: { percentage: 0.35, fallbackRate: 0.01 }, // 35% du total ou 1% du prix d'achat
+      schoolTaxes: { percentage: 0.05, fallbackRate: 0.001 }, // 5% du total ou 0.1% du prix d'achat
+      insurance: { percentage: 0.10, fallbackRate: 0.005 }, // 10% du total ou 0.5% du prix d'achat
+      electricity: { percentage: 0.05 }, // 5% du total
+      heating: { percentage: 0.05 }, // 5% du total
+      water: { percentage: 0.03 }, // 3% du total
+      maintenance: { percentage: 0.15 }, // 15% du total
+      management: { percentage: 0.05 }, // 5% du total
+      janitorial: { percentage: 0.05 }, // 5% du total
+      snowRemoval: { percentage: 0.03 }, // 3% du total
+      landscaping: { percentage: 0.02 }, // 2% du total
+      garbage: { percentage: 0.02 }, // 2% du total
+      other: { percentage: 0.05 } // 5% du total
+    };
+    
+    const categories = {};
+    
+    // Répartition des dépenses selon les pourcentages ou taux par défaut
+    Object.entries(expenseBreakdown).forEach(([category, config]) => {
+      let annualAmount;
+      
+      // Si total des dépenses non défini, essayer d'utiliser le taux de repli basé sur le prix d'achat
+      if (totalAnnualExpenses <= 0 && config.fallbackRate && purchasePrice > 0) {
+        annualAmount = purchasePrice * config.fallbackRate;
+      } else {
+        annualAmount = totalAnnualExpenses * config.percentage;
+      }
+      
+      categories[category] = {
+        annualAmount,
+        monthlyAmount: annualAmount / 12
+      };
+    });
+    
+    return categories;
   }
   
   /**
