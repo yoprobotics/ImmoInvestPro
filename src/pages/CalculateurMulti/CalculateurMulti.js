@@ -2,33 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { calculerMulti } from '../../utils/calculateurs';
 
 /**
- * Composant pour le calculateur Napkin MULTI
- * Implémente la méthode PAR (Prix-Appartements-Revenus) et HIGH-5
+ * Calculateur Napkin MULTI - Implémentation des méthodes PAR et HIGH-5
+ * @param {Object} props - Props du composant
+ * @param {Object} props.initialValues - Valeurs initiales du formulaire
+ * @param {Function} props.onCalculate - Fonction appelée après un calcul réussi
+ * @param {Function} props.onSave - Fonction pour sauvegarder l'analyse
+ * @param {Function} props.onReset - Fonction pour réinitialiser le formulaire
  */
-const CalculateurMulti = ({ onSave }) => {
-  // Initialisation des états pour le formulaire
-  const [formValues, setFormValues] = useState({
+const CalculateurMulti = ({
+  initialValues = {
     prixAchat: '',
     nombreAppartements: '',
     revenusBruts: '',
-  });
-
-  // État pour les résultats des calculs
+  },
+  onCalculate = () => {},
+  onSave = () => {},
+  onReset = () => {},
+}) => {
+  // États du composant
+  const [formValues, setFormValues] = useState(initialValues);
   const [results, setResults] = useState(null);
-
-  // État pour gérer les erreurs de validation
   const [errors, setErrors] = useState({});
-
-  // Mode de calcul: "evaluer" ou "offreMax"
+  
+  // Mode de calcul: "evaluer" (par défaut) ou "offreMax"
   const [mode, setMode] = useState('evaluer');
 
-  // Effectuer les calculs quand les valeurs du formulaire changent
+  // Effectuer les calculs quand les valeurs du formulaire changent et sont valides
   useEffect(() => {
-    // Ne calculer que si tous les champs sont remplis
+    // Ne calculer que si tous les champs sont remplis et valides
     if (
       formValues.prixAchat &&
       formValues.nombreAppartements &&
-      formValues.revenusBruts
+      formValues.revenusBruts &&
+      !Object.keys(errors).length
     ) {
       // Convertir les valeurs en nombres
       const params = {
@@ -40,17 +46,20 @@ const CalculateurMulti = ({ onSave }) => {
       // Calculer les résultats
       const calculResults = calculerMulti(params);
       setResults(calculResults);
+      
+      // Appeler la fonction de callback avec les résultats
+      onCalculate(calculResults);
     } else {
-      // Réinitialiser les résultats si un champ est vide
+      // Réinitialiser les résultats si un champ est vide ou invalide
       setResults(null);
     }
-  }, [formValues]);
+  }, [formValues, errors, onCalculate]);
 
   // Gestion des changements de champs du formulaire
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Validation: accepter seulement les nombres
+    // Validation: accepter les nombres et champs vides
     if (value === '' || /^[0-9]*$/.test(value)) {
       setFormValues({
         ...formValues,
@@ -132,16 +141,13 @@ const CalculateurMulti = ({ onSave }) => {
     }
   };
 
-  // Gestion de la réinitialisation du formulaire
+  // Réinitialisation du formulaire
   const handleReset = () => {
-    setFormValues({
-      prixAchat: '',
-      nombreAppartements: '',
-      revenusBruts: '',
-    });
+    setFormValues(initialValues);
     setResults(null);
     setErrors({});
     setMode('evaluer');
+    onReset();
   };
 
   return (
@@ -332,8 +338,31 @@ const CalculateurMulti = ({ onSave }) => {
               </p>
             )}
           </div>
+          
+          {/* Bouton de sauvegarde */}
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              onClick={() => onSave(formValues, results)}
+              className="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700"
+            >
+              Sauvegarder cette analyse
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Lien vers la documentation */}
+      <div className="mt-4 text-sm text-gray-600">
+        <a 
+          href="https://github.com/yoprobotics/ImmoInvestPro/blob/main/docs/calculateurs/napkin-multi.md" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Consulter la documentation complète
+        </a>
+      </div>
     </div>
   );
 };

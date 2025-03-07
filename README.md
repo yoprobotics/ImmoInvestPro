@@ -8,7 +8,7 @@ ImmoInvestPro est une application complète d'analyse et de suivi d'investisseme
 
 ### Analyse rapide avec calculateurs Napkin
 - **FLIP (FIP10)**: Analysez rapidement la rentabilité des projets d'achat-rénovation-revente
-- **MULTI (PAR)**: Évaluez le potentiel des immeubles locatifs en quelques secondes
+- **MULTI (PAR)**: Évaluez le potentiel des immeubles locatifs en quelques secondes ([Documentation complète](docs/calculateurs/napkin-multi.md))
 
 ### Détection d'opportunités cachées
 - Identification automatique d'optimisations potentielles
@@ -24,6 +24,9 @@ ImmoInvestPro est une application complète d'analyse et de suivi d'investisseme
 - Guides pas à pas pour les projets FLIP et MULTI
 - Gestion des tâches par étape
 - Centralisation des documents importants
+
+## Documentation des calculateurs
+- [Calculateur Napkin MULTI](docs/calculateurs/napkin-multi.md) - Évaluation rapide de la rentabilité d'un immeuble à revenus
 
 ## Modèle Freemium
 
