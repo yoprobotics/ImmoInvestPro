@@ -1,868 +1,467 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Grid, TextField, Typography, Paper, Box, Divider, Switch,
-  FormControlLabel, MenuItem, Button, Accordion, AccordionSummary,
-  AccordionDetails, Slider
+  Typography, Grid, TextField, InputAdornment,
+  Paper, Box, Divider, Slider, Tooltip, FormControlLabel,
+  Switch, Alert, Accordion, AccordionSummary, AccordionDetails
 } from '@mui/material';
 import { 
-  ExpandMore as ExpandMoreIcon, 
-  Add as AddIcon,
-  Delete as DeleteIcon 
+  Info as InfoIcon,
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
-import { formatNumberWithSpaces } from '../../../utils/formatters';
 
 /**
- * Formulaire pour la configuration du financement
- * @param {Object} financingData - Les données de financement actuelles
- * @param {Function} setFinancingData - Fonction pour mettre à jour les données de financement
- * @param {number} purchasePrice - Prix d'achat de l'immeuble
+ * Formulaire pour configurer le financement d'un immeuble MULTI
  */
-const FinancingForm = ({ financingData, setFinancingData, purchasePrice }) => {
+const FinancingForm = ({ propertyData, updatePropertyData }) => {
+  // État pour contrôler l'affichage du financement créatif
+  const [showCreativeFinancing, setShowCreativeFinancing] = useState(
+    propertyData.creativeFinancing?.enabled || false
+  );
   
-  // États locaux pour les fonctionnalités avancées
-  const [advancedMode, setAdvancedMode] = useState(false);
-  const [showCreativeFinancing, setShowCreativeFinancing] = useState(false);
-  
-  // Gestion des changements dans le prêt hypothécaire principal
-  const handleFirstMortgageChange = (field, value) => {
-    const updatedMortgage = { ...financingData.firstMortgage };
+  // Mettre à jour le financement standard
+  const handleFinancingChange = (field, value) => {
+    // Si c'est le pourcentage de mise de fonds, mettre à jour le montant
+    if (field === 'downPaymentPercentage') {
+      const downPaymentAmount = (propertyData.price * value) / 100;
+      updatePropertyData('financing', 'downPayment', downPaymentAmount);
+    } 
+    // Si c'est le montant de mise de fonds, mettre à jour le pourcentage
+    else if (field === 'downPayment') {
+      const downPaymentPercentage = propertyData.price > 0 ? (value / propertyData.price) * 100 : 0;
+      updatePropertyData('financing', 'downPaymentPercentage', downPaymentPercentage);
+    }
     
-    // Traitements spécifiques
-    if (field === 'loanToValue') {
-      updatedMortgage[field] = value;
+    // Mettre à jour le champ
+    updatePropertyData('financing', field, value);
+    
+    // Calculer le montant du prêt
+    const loanAmount = propertyData.price - (field === 'downPayment' ? value : propertyData.financing.downPayment);
+    updatePropertyData('financing', 'loanAmount', loanAmount);
+  };
+  
+  // Mettre à jour le financement créatif
+  const handleCreativeFinancingChange = (field, value) => {
+    updatePropertyData('creativeFinancing', field, value);
+  };
+  
+  // Activer/désactiver le financement créatif
+  const toggleCreativeFinancing = (event) => {
+    const enabled = event.target.checked;
+    setShowCreativeFinancing(enabled);
+    updatePropertyData('creativeFinancing', 'enabled', enabled);
+  };
+  
+  // Initialiser le montant de mise de fonds lors du chargement
+  useEffect(() => {
+    // Calculer le montant de mise de fonds si le prix et le pourcentage sont définis
+    if (propertyData.price && propertyData.financing.downPaymentPercentage) {
+      const downPayment = (propertyData.price * propertyData.financing.downPaymentPercentage) / 100;
+      updatePropertyData('financing', 'downPayment', downPayment);
       
-      // Si un montant spécifique était défini, le retirer
-      if (updatedMortgage.desiredAmount) {
-        updatedMortgage.desiredAmount = undefined;
-      }
-    } else if (field === 'desiredAmount') {
-      // Vérifier que le montant ne dépasse pas le prix d'achat
-      const maxAmount = purchasePrice || 0;
-      updatedMortgage[field] = Math.min(value, maxAmount);
+      // Calculer le montant du prêt
+      const loanAmount = propertyData.price - downPayment;
+      updatePropertyData('financing', 'loanAmount', loanAmount);
+    }
+  }, [propertyData.price]); // Recalculer quand le prix change
+  
+  // Calculer le paiement hypothécaire mensuel
+  const calculateMonthlyPayment = () => {
+    const loanAmount = propertyData.financing.loanAmount || 0;
+    const rate = propertyData.financing.interestRate || 0;
+    const years = propertyData.financing.amortizationYears || 25;
+    
+    if (loanAmount > 0 && rate > 0) {
+      const monthlyRate = rate / 100 / 12;
+      const numPayments = years * 12;
       
-      // Calculer le LTV correspondant
-      if (purchasePrice > 0) {
-        updatedMortgage.loanToValue = (updatedMortgage[field] / purchasePrice) * 100;
+      return loanAmount * 
+        (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+        (Math.pow(1 + monthlyRate, numPayments) - 1);
+    }
+    
+    return 0;
+  };
+  
+  // Calculer la structure globale du financement
+  const calculateFinancingStructure = () => {
+    const price = propertyData.price || 0;
+    const downPayment = propertyData.financing.downPayment || 0;
+    const bankLoan = propertyData.financing.loanAmount || 0;
+    
+    let vendorBalance = 0;
+    let privateInvestor = 0;
+    
+    if (showCreativeFinancing) {
+      vendorBalance = propertyData.creativeFinancing.vendorBalance || 0;
+      privateInvestor = propertyData.creativeFinancing.privateInvestor || 0;
+    }
+    
+    const totalFinancing = downPayment + bankLoan + vendorBalance + privateInvestor;
+    
+    return {
+      downPaymentPercentage: price > 0 ? (downPayment / price) * 100 : 0,
+      bankLoanPercentage: price > 0 ? (bankLoan / price) * 100 : 0,
+      vendorBalancePercentage: price > 0 ? (vendorBalance / price) * 100 : 0,
+      privateInvestorPercentage: price > 0 ? (privateInvestor / price) * 100 : 0,
+      totalPercentage: price > 0 ? (totalFinancing / price) * 100 : 0
+    };
+  };
+  
+  // Calculer les paiements mensuels pour tous les types de financement
+  const calculateMonthlyPayments = () => {
+    // Paiement hypothécaire standard
+    const bankPayment = calculateMonthlyPayment();
+    
+    // Paiements pour le financement créatif
+    let vendorPayment = 0;
+    let investorPayment = 0;
+    
+    if (showCreativeFinancing) {
+      // Balance de vente
+      const vendorAmount = propertyData.creativeFinancing.vendorBalance || 0;
+      const vendorRate = propertyData.creativeFinancing.vendorBalanceRate || 0;
+      if (vendorAmount > 0 && vendorRate > 0) {
+        vendorPayment = (vendorAmount * (vendorRate / 100)) / 12;
       }
-    } else {
-      updatedMortgage[field] = value;
+      
+      // Investisseur privé
+      const investorAmount = propertyData.creativeFinancing.privateInvestor || 0;
+      const investorRate = propertyData.creativeFinancing.privateInvestorRate || 0;
+      if (investorAmount > 0 && investorRate > 0) {
+        investorPayment = (investorAmount * (investorRate / 100)) / 12;
+      }
     }
     
-    setFinancingData(prev => ({
-      ...prev,
-      firstMortgage: updatedMortgage
-    }));
+    const totalMonthlyPayment = bankPayment + vendorPayment + investorPayment;
+    const annualPayment = totalMonthlyPayment * 12;
+    
+    return {
+      bankPayment,
+      vendorPayment,
+      investorPayment,
+      totalMonthlyPayment,
+      annualPayment
+    };
   };
   
-  // Activation du prêt hypothécaire secondaire
-  const toggleSecondMortgage = (isEnabled) => {
-    if (isEnabled) {
-      setFinancingData(prev => ({
-        ...prev,
-        secondMortgage: {
-          amount: 0,
-          interestRate: 8,
-          amortizationYears: 15,
-          term: 3,
-          interestOnly: false
-        }
-      }));
-    } else {
-      setFinancingData(prev => ({
-        ...prev,
-        secondMortgage: null
-      }));
-    }
-  };
-  
-  // Gestion des changements dans le prêt hypothécaire secondaire
-  const handleSecondMortgageChange = (field, value) => {
-    if (!financingData.secondMortgage) return;
-    
-    const updatedMortgage = { ...financingData.secondMortgage };
-    
-    if (field === 'interestOnly') {
-      updatedMortgage[field] = value;
-    } else {
-      updatedMortgage[field] = value === '' ? 0 : Number(value);
-    }
-    
-    setFinancingData(prev => ({
-      ...prev,
-      secondMortgage: updatedMortgage
-    }));
-  };
-  
-  // Activation du financement vendeur
-  const toggleSellerFinancing = (isEnabled) => {
-    if (isEnabled) {
-      setFinancingData(prev => ({
-        ...prev,
-        sellerFinancing: {
-          amount: 0,
-          interestRate: 5,
-          amortizationYears: 5,
-          term: 5,
-          interestOnly: true,
-          paymentStartMonths: 0
-        }
-      }));
-    } else {
-      setFinancingData(prev => ({
-        ...prev,
-        sellerFinancing: null
-      }));
-    }
-  };
-  
-  // Gestion des changements dans le financement vendeur
-  const handleSellerFinancingChange = (field, value) => {
-    if (!financingData.sellerFinancing) return;
-    
-    const updatedFinancing = { ...financingData.sellerFinancing };
-    
-    if (field === 'interestOnly') {
-      updatedFinancing[field] = value;
-    } else {
-      updatedFinancing[field] = value === '' ? 0 : Number(value);
-    }
-    
-    setFinancingData(prev => ({
-      ...prev,
-      sellerFinancing: updatedFinancing
-    }));
-  };
-  
-  // Activation du financement par investisseur privé
-  const togglePrivateInvestor = (isEnabled) => {
-    if (isEnabled) {
-      setFinancingData(prev => ({
-        ...prev,
-        privateInvestor: {
-          amount: 0,
-          interestRate: 10,
-          amortizationYears: 5,
-          term: 5,
-          interestOnly: true,
-          profitSharing: 0
-        }
-      }));
-    } else {
-      setFinancingData(prev => ({
-        ...prev,
-        privateInvestor: null
-      }));
-    }
-  };
-  
-  // Gestion des changements dans le financement par investisseur privé
-  const handlePrivateInvestorChange = (field, value) => {
-    if (!financingData.privateInvestor) return;
-    
-    const updatedInvestor = { ...financingData.privateInvestor };
-    
-    if (field === 'interestOnly') {
-      updatedInvestor[field] = value;
-    } else {
-      updatedInvestor[field] = value === '' ? 0 : Number(value);
-    }
-    
-    setFinancingData(prev => ({
-      ...prev,
-      privateInvestor: updatedInvestor
-    }));
-  };
-  
-  // Gestion des changements dans les montants de mise de fonds personnelle
-  const handleEquityChange = (field, value) => {
-    setFinancingData(prev => ({
-      ...prev,
-      [field]: value === '' ? 0 : Number(value)
-    }));
-  };
-  
-  // Fréquences de paiement hypothécaire
-  const paymentFrequencies = [
-    { value: 'monthly', label: 'Mensuelle' },
-    { value: 'biweekly', label: 'Aux deux semaines' },
-    { value: 'accelerated', label: 'Accéléré (aux deux semaines)' }
-  ];
-  
-  // Calcul du montant du prêt hypothécaire principal
-  const firstMortgageAmount = financingData.firstMortgage.desiredAmount || 
-    (purchasePrice * (financingData.firstMortgage.loanToValue / 100));
-  
-  // Calcul du montant total financé
-  const totalFinanced = 
-    firstMortgageAmount + 
-    (financingData.secondMortgage?.amount || 0) + 
-    (financingData.sellerFinancing?.amount || 0) + 
-    (financingData.privateInvestor?.amount || 0);
-  
-  // Calcul de la mise de fonds nécessaire
-  const requiredDownPayment = Math.max(0, purchasePrice - totalFinanced);
-  
-  // Mise de fonds totale disponible
-  const availableDownPayment = financingData.personalCashAmount + financingData.additionalEquityAmount;
-  
-  // Calcul de l'écart de financement
-  const financingGap = requiredDownPayment - availableDownPayment;
+  const financingStructure = calculateFinancingStructure();
+  const monthlyPayments = calculateMonthlyPayments();
   
   return (
-    <Box>
-      <Typography variant="h6" gutterBottom>
-        Options de financement
-      </Typography>
-      <Typography variant="body2" color="text.secondary" paragraph>
-        Configurez les différentes sources de financement pour l'acquisition de l'immeuble.
-      </Typography>
-      
-      {/* Section pour le prêt hypothécaire principal */}
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
         <Typography variant="subtitle1" gutterBottom>
-          Prêt hypothécaire principal
+          Options de financement
         </Typography>
-        
-        <Grid container spacing={3}>
-          {/* Mode de calcul du montant du prêt */}
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Ratio prêt-valeur (%)"
-              value={financingData.firstMortgage.loanToValue}
-              onChange={(e) => handleFirstMortgageChange('loanToValue', Number(e.target.value))}
-              type="number"
-              InputProps={{
-                inputProps: { min: 0, max: 100, step: 0.5 }
-              }}
-              helperText="Pourcentage du prix d'achat"
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Montant du prêt"
-              value={formatNumberWithSpaces(firstMortgageAmount)}
-              InputProps={{
-                readOnly: true,
-                startAdornment: '$'
-              }}
-              variant="filled"
-              helperText="Montant calculé"
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Montant spécifique"
-              value={financingData.firstMortgage.desiredAmount || ''}
-              onChange={(e) => handleFirstMortgageChange('desiredAmount', Number(e.target.value))}
-              type="number"
-              InputProps={{
-                startAdornment: '$',
-                inputProps: { min: 0, max: purchasePrice }
-              }}
-              helperText="Optionnel, remplace le ratio"
-            />
-          </Grid>
-          
-          {/* Taux d'intérêt */}
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Taux d'intérêt (%)"
-              value={financingData.firstMortgage.interestRate}
-              onChange={(e) => handleFirstMortgageChange('interestRate', Number(e.target.value))}
-              type="number"
-              InputProps={{
-                inputProps: { min: 0, max: 20, step: 0.01 }
-              }}
-              required
-            />
-          </Grid>
-          
-          {/* Amortissement */}
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Période d'amortissement (années)"
-              value={financingData.firstMortgage.amortizationYears}
-              onChange={(e) => handleFirstMortgageChange('amortizationYears', Number(e.target.value))}
-              type="number"
-              InputProps={{
-                inputProps: { min: 1, max: 30 }
-              }}
-              required
-            />
-          </Grid>
-          
-          {/* Terme */}
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Terme (années)"
-              value={financingData.firstMortgage.term}
-              onChange={(e) => handleFirstMortgageChange('term', Number(e.target.value))}
-              type="number"
-              InputProps={{
-                inputProps: { min: 1, max: 10 }
-              }}
-              required
-            />
-          </Grid>
-          
-          {/* Options avancées */}
-          {advancedMode && (
-            <>
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Fréquence de paiement"
-                  value={financingData.firstMortgage.paymentFrequency}
-                  onChange={(e) => handleFirstMortgageChange('paymentFrequency', e.target.value)}
-                >
-                  {paymentFrequencies.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-              
-              <Grid item xs={12} sm={6} md={4}>
-                <TextField
-                  fullWidth
-                  label="Privilèges de remboursement anticipé (%)"
-                  value={financingData.firstMortgage.prepaymentPrivileges}
-                  onChange={(e) => handleFirstMortgageChange('prepaymentPrivileges', Number(e.target.value))}
-                  type="number"
-                  InputProps={{
-                    inputProps: { min: 0, max: 100 }
-                  }}
-                  helperText="Remboursement annuel sans pénalité"
-                />
-              </Grid>
-            </>
-          )}
-        </Grid>
-        
-        <Box sx={{ mt: 2 }}>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          Configurez les options de financement pour votre immeuble à revenus.
+        </Typography>
+      </Grid>
+      
+      {/* Financement standard */}
+      <Grid item xs={12}>
+        <Typography variant="subtitle2" gutterBottom>
+          Financement hypothécaire standard
+        </Typography>
+      </Grid>
+      
+      {/* Prix d'achat (lecture seule) */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Prix d'achat"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.price || ''}
+          disabled
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            readOnly: true,
+          }}
+          helperText="Prix d'achat de l'immeuble (modifiable à l'étape 1)"
+        />
+      </Grid>
+      
+      {/* Mise de fonds (montant) */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Mise de fonds"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.financing.downPayment || ''}
+          onChange={(e) => handleFinancingChange('downPayment', parseFloat(e.target.value) || 0)}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+          }}
+          helperText="Montant de la mise de fonds"
+        />
+      </Grid>
+      
+      {/* Mise de fonds (pourcentage) */}
+      <Grid item xs={12}>
+        <Typography variant="body2" gutterBottom>
+          Pourcentage de mise de fonds: {propertyData.financing.downPaymentPercentage?.toFixed(1) || 0}%
+        </Typography>
+        <Slider
+          value={propertyData.financing.downPaymentPercentage || 20}
+          onChange={(e, value) => handleFinancingChange('downPaymentPercentage', value)}
+          aria-labelledby="mise-de-fonds-slider"
+          valueLabelDisplay="auto"
+          step={0.5}
+          marks={[
+            { value: 5, label: '5%' },
+            { value: 10, label: '10%' },
+            { value: 20, label: '20%' },
+            { value: 30, label: '30%' },
+          ]}
+          min={5}
+          max={50}
+        />
+      </Grid>
+      
+      {/* Montant du prêt */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Montant du prêt"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.financing.loanAmount || ''}
+          onChange={(e) => handleFinancingChange('loanAmount', parseFloat(e.target.value) || 0)}
+          InputProps={{
+            startAdornment: <InputAdornment position="start">$</InputAdornment>,
+          }}
+          helperText="Montant du prêt hypothécaire"
+        />
+      </Grid>
+      
+      {/* Taux d'intérêt */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Taux d'intérêt"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.financing.interestRate || ''}
+          onChange={(e) => handleFinancingChange('interestRate', parseFloat(e.target.value) || 0)}
+          InputProps={{
+            endAdornment: <InputAdornment position="end">%</InputAdornment>,
+          }}
+          helperText="Taux d'intérêt annuel"
+          inputProps={{ step: 0.1 }}
+        />
+      </Grid>
+      
+      {/* Période d'amortissement */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Période d'amortissement"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.financing.amortizationYears || ''}
+          onChange={(e) => handleFinancingChange('amortizationYears', parseInt(e.target.value) || 0)}
+          InputProps={{
+            endAdornment: <InputAdornment position="end">ans</InputAdornment>,
+          }}
+          helperText="Durée totale du prêt"
+          inputProps={{ min: 1, max: 30, step: 1 }}
+        />
+      </Grid>
+      
+      {/* Terme du prêt */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Terme du prêt"
+          type="number"
+          variant="outlined"
+          fullWidth
+          value={propertyData.financing.term || ''}
+          onChange={(e) => handleFinancingChange('term', parseInt(e.target.value) || 0)}
+          InputProps={{
+            endAdornment: <InputAdornment position="end">ans</InputAdornment>,
+          }}
+          helperText="Durée du terme initial"
+          inputProps={{ min: 1, max: 10, step: 1 }}
+        />
+      </Grid>
+      
+      {/* Financement créatif */}
+      <Grid item xs={12}>
+        <Divider sx={{ my: 2 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="subtitle2">
+            Financement créatif
+          </Typography>
           <FormControlLabel
             control={
               <Switch
-                checked={advancedMode}
-                onChange={(e) => setAdvancedMode(e.target.checked)}
+                checked={showCreativeFinancing}
+                onChange={toggleCreativeFinancing}
                 color="primary"
               />
             }
-            label="Options avancées"
+            label="Activer le financement créatif"
           />
         </Box>
-      </Paper>
-      
-      {/* Options de financement créatif */}
-      <Box sx={{ mb: 3 }}>
-        <Button
-          variant="outlined"
-          color="secondary"
-          startIcon={showCreativeFinancing ? <ExpandMoreIcon /> : <AddIcon />}
-          onClick={() => setShowCreativeFinancing(!showCreativeFinancing)}
-          fullWidth
-          sx={{ mb: 2 }}
-        >
-          {showCreativeFinancing ? "Masquer les options de financement créatif" : "Afficher les options de financement créatif"}
-        </Button>
         
         {showCreativeFinancing && (
-          <Box>
-            {/* Prêt hypothécaire secondaire */}
-            <Accordion defaultExpanded={false}>
+          <>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Le financement créatif peut vous aider à réduire votre mise de fonds et augmenter votre rendement.
+            </Typography>
+            
+            <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                  <Typography variant="subtitle1">Prêt hypothécaire secondaire</Typography>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={!!financingData.secondMortgage}
-                        onChange={(e) => toggleSecondMortgage(e.target.checked)}
-                        color="primary"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    }
-                    label=""
-                    sx={{ mr: 0 }}
-                  />
-                </Box>
+                <Typography>Balance de vente</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {financingData.secondMortgage ? (
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Montant"
-                        value={financingData.secondMortgage.amount}
-                        onChange={(e) => handleSecondMortgageChange('amount', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          startAdornment: '$',
-                          inputProps: { min: 0 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Taux d'intérêt (%)"
-                        value={financingData.secondMortgage.interestRate}
-                        onChange={(e) => handleSecondMortgageChange('interestRate', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 0, step: 0.01 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={financingData.secondMortgage.interestOnly}
-                              onChange={(e) => handleSecondMortgageChange('interestOnly', e.target.checked)}
-                              color="primary"
-                            />
-                          }
-                          label="Intérêt seulement"
-                        />
-                      </Box>
-                    </Grid>
-                    
-                    {!financingData.secondMortgage.interestOnly && (
-                      <>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <TextField
-                            fullWidth
-                            label="Période d'amortissement (années)"
-                            value={financingData.secondMortgage.amortizationYears}
-                            onChange={(e) => handleSecondMortgageChange('amortizationYears', e.target.value)}
-                            type="number"
-                            InputProps={{
-                              inputProps: { min: 1, max: 30 }
-                            }}
-                            required
-                          />
-                        </Grid>
-                      </>
-                    )}
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Terme (années)"
-                        value={financingData.secondMortgage.term}
-                        onChange={(e) => handleSecondMortgageChange('term', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 1, max: 30 }
-                        }}
-                        required
-                      />
-                    </Grid>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Montant balance de vente"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      value={propertyData.creativeFinancing.vendorBalance || ''}
+                      onChange={(e) => handleCreativeFinancingChange('vendorBalance', parseFloat(e.target.value) || 0)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                      helperText="Montant financé par le vendeur"
+                    />
                   </Grid>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Activez cette option pour ajouter un prêt hypothécaire secondaire.
-                  </Typography>
-                )}
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Taux d'intérêt"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      value={propertyData.creativeFinancing.vendorBalanceRate || ''}
+                      onChange={(e) => handleCreativeFinancingChange('vendorBalanceRate', parseFloat(e.target.value) || 0)}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      }}
+                      helperText="Taux d'intérêt annuel (généralement 6-8%)"
+                      inputProps={{ step: 0.1 }}
+                    />
+                  </Grid>
+                </Grid>
               </AccordionDetails>
             </Accordion>
             
-            {/* Balance de vente (financement vendeur) */}
-            <Accordion defaultExpanded={false}>
+            <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                  <Typography variant="subtitle1">Balance de vente (Financement vendeur)</Typography>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={!!financingData.sellerFinancing}
-                        onChange={(e) => toggleSellerFinancing(e.target.checked)}
-                        color="primary"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    }
-                    label=""
-                    sx={{ mr: 0 }}
-                  />
-                </Box>
+                <Typography>Investisseur privé</Typography>
               </AccordionSummary>
               <AccordionDetails>
-                {financingData.sellerFinancing ? (
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Montant"
-                        value={financingData.sellerFinancing.amount}
-                        onChange={(e) => handleSellerFinancingChange('amount', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          startAdornment: '$',
-                          inputProps: { min: 0 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Taux d'intérêt (%)"
-                        value={financingData.sellerFinancing.interestRate}
-                        onChange={(e) => handleSellerFinancingChange('interestRate', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 0, step: 0.01 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={financingData.sellerFinancing.interestOnly}
-                              onChange={(e) => handleSellerFinancingChange('interestOnly', e.target.checked)}
-                              color="primary"
-                            />
-                          }
-                          label="Intérêt seulement"
-                        />
-                      </Box>
-                    </Grid>
-                    
-                    {!financingData.sellerFinancing.interestOnly && (
-                      <>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <TextField
-                            fullWidth
-                            label="Période d'amortissement (années)"
-                            value={financingData.sellerFinancing.amortizationYears}
-                            onChange={(e) => handleSellerFinancingChange('amortizationYears', e.target.value)}
-                            type="number"
-                            InputProps={{
-                              inputProps: { min: 1, max: 30 }
-                            }}
-                            required
-                          />
-                        </Grid>
-                      </>
-                    )}
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Terme (années)"
-                        value={financingData.sellerFinancing.term}
-                        onChange={(e) => handleSellerFinancingChange('term', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 1, max: 30 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Délai avant premiers paiements (mois)"
-                        value={financingData.sellerFinancing.paymentStartMonths}
-                        onChange={(e) => handleSellerFinancingChange('paymentStartMonths', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 0, max: 60 }
-                        }}
-                        helperText="0 = paiements immédiats"
-                      />
-                    </Grid>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Montant investisseur privé"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      value={propertyData.creativeFinancing.privateInvestor || ''}
+                      onChange={(e) => handleCreativeFinancingChange('privateInvestor', parseFloat(e.target.value) || 0)}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                      }}
+                      helperText="Montant financé par un investisseur privé"
+                    />
                   </Grid>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Activez cette option pour ajouter un financement vendeur (balance de vente).
-                  </Typography>
-                )}
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Taux d'intérêt"
+                      type="number"
+                      variant="outlined"
+                      fullWidth
+                      value={propertyData.creativeFinancing.privateInvestorRate || ''}
+                      onChange={(e) => handleCreativeFinancingChange('privateInvestorRate', parseFloat(e.target.value) || 0)}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                      }}
+                      helperText="Taux d'intérêt annuel (généralement 8-12%)"
+                      inputProps={{ step: 0.1 }}
+                    />
+                  </Grid>
+                </Grid>
               </AccordionDetails>
             </Accordion>
-            
-            {/* Investisseur privé */}
-            <Accordion defaultExpanded={false}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                  <Typography variant="subtitle1">Investisseur privé</Typography>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={!!financingData.privateInvestor}
-                        onChange={(e) => togglePrivateInvestor(e.target.checked)}
-                        color="primary"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    }
-                    label=""
-                    sx={{ mr: 0 }}
-                  />
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                {financingData.privateInvestor ? (
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Montant"
-                        value={financingData.privateInvestor.amount}
-                        onChange={(e) => handlePrivateInvestorChange('amount', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          startAdornment: '$',
-                          inputProps: { min: 0 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Taux d'intérêt (%)"
-                        value={financingData.privateInvestor.interestRate}
-                        onChange={(e) => handlePrivateInvestorChange('interestRate', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 0, step: 0.01 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={financingData.privateInvestor.interestOnly}
-                              onChange={(e) => handlePrivateInvestorChange('interestOnly', e.target.checked)}
-                              color="primary"
-                            />
-                          }
-                          label="Intérêt seulement"
-                        />
-                      </Box>
-                    </Grid>
-                    
-                    {!financingData.privateInvestor.interestOnly && (
-                      <>
-                        <Grid item xs={12} sm={6} md={4}>
-                          <TextField
-                            fullWidth
-                            label="Période d'amortissement (années)"
-                            value={financingData.privateInvestor.amortizationYears}
-                            onChange={(e) => handlePrivateInvestorChange('amortizationYears', e.target.value)}
-                            type="number"
-                            InputProps={{
-                              inputProps: { min: 1, max: 30 }
-                            }}
-                            required
-                          />
-                        </Grid>
-                      </>
-                    )}
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Terme (années)"
-                        value={financingData.privateInvestor.term}
-                        onChange={(e) => handlePrivateInvestorChange('term', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 1, max: 30 }
-                        }}
-                        required
-                      />
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6} md={4}>
-                      <TextField
-                        fullWidth
-                        label="Partage de profits (%)"
-                        value={financingData.privateInvestor.profitSharing}
-                        onChange={(e) => handlePrivateInvestorChange('profitSharing', e.target.value)}
-                        type="number"
-                        InputProps={{
-                          inputProps: { min: 0, max: 100 }
-                        }}
-                        helperText="Pourcentage du profit à partager"
-                      />
-                    </Grid>
-                  </Grid>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    Activez cette option pour ajouter un investisseur privé.
-                  </Typography>
-                )}
-              </AccordionDetails>
-            </Accordion>
-          </Box>
+          </>
         )}
-      </Box>
-      
-      {/* Section pour la mise de fonds */}
-      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
-        <Typography variant="subtitle1" gutterBottom>
-          Mise de fonds et capitaux propres
-        </Typography>
-        
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Mise de fonds nécessaire"
-              value={formatNumberWithSpaces(requiredDownPayment)}
-              InputProps={{
-                readOnly: true,
-                startAdornment: '$'
-              }}
-              variant="filled"
-              helperText="Montant calculé"
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Mise de fonds personnelle"
-              value={financingData.personalCashAmount}
-              onChange={(e) => handleEquityChange('personalCashAmount', e.target.value)}
-              type="number"
-              InputProps={{
-                startAdornment: '$',
-                inputProps: { min: 0 }
-              }}
-              helperText="Montant en argent personnel"
-            />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              fullWidth
-              label="Équité additionnelle"
-              value={financingData.additionalEquityAmount}
-              onChange={(e) => handleEquityChange('additionalEquityAmount', e.target.value)}
-              type="number"
-              InputProps={{
-                startAdornment: '$',
-                inputProps: { min: 0 }
-              }}
-              helperText="Autre source d'équité (ex: REER)"
-            />
-          </Grid>
-        </Grid>
-      </Paper>
+      </Grid>
       
       {/* Résumé du financement */}
-      <Paper variant="outlined" sx={{ p: 3, bgcolor: 'background.default' }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Résumé du financement
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Prix d'achat:</strong>
-            </Typography>
-            <Typography variant="h6">
-              {formatNumberWithSpaces(purchasePrice)} $
-            </Typography>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Montant financé total:</strong>
-            </Typography>
-            <Typography variant="h6" color="primary.main">
-              {formatNumberWithSpaces(totalFinanced)} $
-            </Typography>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Mise de fonds nécessaire:</strong>
-            </Typography>
-            <Typography variant="h6" color={financingGap > 0 ? "error.main" : "success.main"}>
-              {formatNumberWithSpaces(requiredDownPayment)} $
-            </Typography>
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Typography variant="body2">
-              <strong>Mise de fonds disponible:</strong>
-            </Typography>
-            <Typography variant="h6" color={financingGap > 0 ? "error.main" : "success.main"}>
-              {formatNumberWithSpaces(availableDownPayment)} $
-            </Typography>
-          </Grid>
-        </Grid>
-        
-        <Divider sx={{ my: 2 }} />
-        
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <Typography variant="body2">
-              <strong>Prêt hypothécaire principal:</strong> {formatNumberWithSpaces(firstMortgageAmount)} $ ({financingData.firstMortgage.loanToValue.toFixed(1)}% du prix)
-            </Typography>
-            {financingData.secondMortgage && (
-              <Typography variant="body2">
-                <strong>2e hypothèque:</strong> {formatNumberWithSpaces(financingData.secondMortgage.amount)} $
-              </Typography>
-            )}
-            {financingData.sellerFinancing && (
-              <Typography variant="body2">
-                <strong>Balance de vente:</strong> {formatNumberWithSpaces(financingData.sellerFinancing.amount)} $
-              </Typography>
-            )}
-            {financingData.privateInvestor && (
-              <Typography variant="body2">
-                <strong>Investisseur privé:</strong> {formatNumberWithSpaces(financingData.privateInvestor.amount)} $
-              </Typography>
+      <Grid item xs={12}>
+        <Paper variant="outlined" sx={{ p: 2, mt: 2, bgcolor: 'action.hover' }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Structure du financement
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2">Mise de fonds</Typography>
+              <Typography variant="h6">{financingStructure.downPaymentPercentage.toFixed(1)}%</Typography>
+              <Typography variant="body2">{(propertyData.financing.downPayment || 0).toLocaleString()} $</Typography>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2">Prêt bancaire</Typography>
+              <Typography variant="h6">{financingStructure.bankLoanPercentage.toFixed(1)}%</Typography>
+              <Typography variant="body2">{(propertyData.financing.loanAmount || 0).toLocaleString()} $</Typography>
+            </Grid>
+            {showCreativeFinancing && (
+              <>
+                <Grid item xs={6} sm={3}>
+                  <Typography variant="body2">Balance de vente</Typography>
+                  <Typography variant="h6">{financingStructure.vendorBalancePercentage.toFixed(1)}%</Typography>
+                  <Typography variant="body2">{(propertyData.creativeFinancing.vendorBalance || 0).toLocaleString()} $</Typography>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Typography variant="body2">Investisseur privé</Typography>
+                  <Typography variant="h6">{financingStructure.privateInvestorPercentage.toFixed(1)}%</Typography>
+                  <Typography variant="body2">{(propertyData.creativeFinancing.privateInvestor || 0).toLocaleString()} $</Typography>
+                </Grid>
+              </>
             )}
           </Grid>
           
-          <Grid item xs={12} sm={6}>
-            {financingGap > 0 ? (
-              <Typography variant="body2" color="error.main">
-                <strong>⚠️ Financement insuffisant:</strong> Il manque {formatNumberWithSpaces(financingGap)} $ pour compléter la mise de fonds nécessaire.
-              </Typography>
-            ) : (
-              <Typography variant="body2" color="success.main">
-                <strong>✓ Financement complet:</strong> La mise de fonds disponible est suffisante pour l'acquisition.
-              </Typography>
+          <Divider sx={{ my: 2 }} />
+          
+          <Typography variant="subtitle2" gutterBottom>
+            Paiements mensuels
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2">Prêt bancaire</Typography>
+              <Typography variant="h6">{monthlyPayments.bankPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })} $</Typography>
+            </Grid>
+            {showCreativeFinancing && (
+              <>
+                <Grid item xs={6} sm={3}>
+                  <Typography variant="body2">Balance de vente</Typography>
+                  <Typography variant="h6">{monthlyPayments.vendorPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })} $</Typography>
+                </Grid>
+                <Grid item xs={6} sm={3}>
+                  <Typography variant="body2">Investisseur privé</Typography>
+                  <Typography variant="h6">{monthlyPayments.investorPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })} $</Typography>
+                </Grid>
+              </>
             )}
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2" fontWeight="bold">Total mensuel</Typography>
+              <Typography variant="h6" fontWeight="bold">{monthlyPayments.totalMonthlyPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })} $</Typography>
+            </Grid>
           </Grid>
-        </Grid>
-      </Paper>
-    </Box>
+          
+          <Box sx={{ mt: 2, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+            <Typography variant="body2" fontWeight="bold">
+              Total annuel: {monthlyPayments.annualPayment.toLocaleString(undefined, { maximumFractionDigits: 0 })} $
+            </Typography>
+          </Box>
+        </Paper>
+      </Grid>
+    </Grid>
   );
 };
 
