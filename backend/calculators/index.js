@@ -7,12 +7,14 @@
 const liquidityCalculator = require('./financial/liquidity_calculator');
 const napkinFlipCalculator = require('./financial/napkin_flip_calculator');
 const napkinMultiCalculator = require('./financial/napkin_multi_calculator');
+const yearlyAcquisitionCalculator = require('./financial/yearly_acquisition_calculator');
 
 // Exporter tous les calculateurs
 module.exports = {
   financial: {
     // Calculateurs détaillés
     liquidityCalculator,
+    yearlyAcquisitionCalculator,
     
     // Calculateurs Napkin
     napkinFlipCalculator,
