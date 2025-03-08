@@ -12,6 +12,7 @@ dotenv.config();
 
 // Import des routes
 const comparisonRoutes = require('./routes/comparisonRoutes');
+const yearlyAcquisitionRoutes = require('./routes/calculators/yearlyAcquisitionRoutes');
 
 // Initialisation de l'application Express
 const app = express();
@@ -24,6 +25,7 @@ app.use(morgan('dev'));
 
 // Configuration des routes
 app.use('/api/comparison', comparisonRoutes);
+app.use('/api/calculators', yearlyAcquisitionRoutes);
 
 // Route de base pour vérifier que l'API fonctionne
 app.get('/', (req, res) => {
