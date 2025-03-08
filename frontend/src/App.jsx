@@ -7,6 +7,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import HomePage from './pages/HomePage';
 import MultiDetailedCalculator from './pages/MultiDetailedCalculator';
 import YearlyAcquisitionCalculatorPage from './pages/YearlyAcquisitionCalculatorPage';
+import TransferTaxCalculatorPage from './pages/TransferTaxCalculatorPage';
 
 // Composants partagés
 import AppHeader from './components/layout/AppHeader';
@@ -77,6 +78,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/calculators/multi/detailed" element={<MultiDetailedCalculator />} />
             <Route path="/calculators/yearly-acquisition" element={<YearlyAcquisitionCalculatorPage />} />
+            <Route path="/calculators/transfer-tax" element={<TransferTaxCalculatorPage />} />
             {/* Routes à ajouter pour les futures fonctionnalités */}
             <Route path="*" element={<HomePage />} />
           </Routes>
