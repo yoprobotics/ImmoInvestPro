@@ -28,7 +28,8 @@ import {
   Construction as ConstructionIcon,
   AccountCircle as AccountCircleIcon,
   KeyboardArrowDown as ArrowDownIcon,
-  TrendingUp as TrendingUpIcon
+  TrendingUp as TrendingUpIcon,
+  Handyman as HandymanIcon
 } from '@mui/icons-material';
 
 /**
@@ -140,6 +141,16 @@ const AppHeader = () => {
                     <TrendingUpIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText>Un immeuble par AN</ListItemText>
+                </MenuItem>
+                
+                <MenuItem 
+                  onClick={() => navigateToCalculator('/calculators/renovations')}
+                  selected={location.pathname === '/calculators/renovations'}
+                >
+                  <ListItemIcon>
+                    <HandymanIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Estimation des rénovations</ListItemText>
                 </MenuItem>
                 
                 <MenuItem 
@@ -268,6 +279,20 @@ const AppHeader = () => {
                 <TrendingUpIcon />
               </ListItemIcon>
               <ListItemText primary="Un immeuble par AN" />
+            </ListItem>
+            
+            <ListItem
+              button
+              component={RouterLink}
+              to="/calculators/renovations"
+              onClick={toggleMobileMenu}
+              selected={location.pathname === '/calculators/renovations'}
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>
+                <HandymanIcon />
+              </ListItemIcon>
+              <ListItemText primary="Estimation des rénovations" />
             </ListItem>
             
             <ListItem
