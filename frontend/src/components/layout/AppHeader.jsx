@@ -28,7 +28,8 @@ import {
   Construction as ConstructionIcon,
   AccountCircle as AccountCircleIcon,
   KeyboardArrowDown as ArrowDownIcon,
-  TrendingUp as TrendingUpIcon
+  TrendingUp as TrendingUpIcon,
+  Receipt as ReceiptIcon
 } from '@mui/icons-material';
 
 /**
@@ -140,6 +141,16 @@ const AppHeader = () => {
                     <TrendingUpIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText>Un immeuble par AN</ListItemText>
+                </MenuItem>
+                
+                <MenuItem 
+                  onClick={() => navigateToCalculator('/calculators/transfer-tax')}
+                  selected={location.pathname === '/calculators/transfer-tax'}
+                >
+                  <ListItemIcon>
+                    <ReceiptIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Taxes de mutation</ListItemText>
                 </MenuItem>
                 
                 <MenuItem 
@@ -268,6 +279,20 @@ const AppHeader = () => {
                 <TrendingUpIcon />
               </ListItemIcon>
               <ListItemText primary="Un immeuble par AN" />
+            </ListItem>
+            
+            <ListItem
+              button
+              component={RouterLink}
+              to="/calculators/transfer-tax"
+              onClick={toggleMobileMenu}
+              selected={location.pathname === '/calculators/transfer-tax'}
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>
+                <ReceiptIcon />
+              </ListItemIcon>
+              <ListItemText primary="Taxes de mutation" />
             </ListItem>
             
             <ListItem
