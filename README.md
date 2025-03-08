@@ -12,6 +12,7 @@ ImmoInvestPro est une application complète d'analyse et de suivi d'investisseme
 
 ### Planification stratégique
 - **Un immeuble par AN**: Projetez l'évolution de votre portefeuille sur plusieurs années et planifiez votre chemin vers l'indépendance financière ([Documentation complète](docs/calculateurs/yearly-acquisition-calculator.md))
+- **Estimation des rénovations**: Calculez rapidement et avec précision le coût des travaux de rénovation grâce à la méthode des 500$ ([Documentation complète](docs/calculateurs/renovation-calculator.md))
 
 ### Détection d'opportunités cachées
 - Identification automatique d'optimisations potentielles
@@ -31,6 +32,7 @@ ImmoInvestPro est une application complète d'analyse et de suivi d'investisseme
 ## Documentation des calculateurs
 - [Calculateur Napkin MULTI](docs/calculateurs/napkin-multi.md) - Évaluation rapide de la rentabilité d'un immeuble à revenus
 - [Calculateur Un immeuble par AN](docs/calculateurs/yearly-acquisition-calculator.md) - Planification stratégique d'acquisition d'un immeuble par année
+- [Calculateur d'estimation des rénovations](docs/calculateurs/renovation-calculator.md) - Évaluation des coûts de rénovation avec la méthode des 500$
 
 ## Modèle Freemium
 
@@ -87,6 +89,7 @@ immoinvestpro/
 
 3. **Phase d'analyse approfondie (premium)**:
    - Accès aux calculateurs détaillés
+   - Estimation précise des coûts de rénovation
    - Simulation de différents scénarios d'optimisation
    - Génération de rapports pour présentation à des partenaires ou financiers
    - Suivi détaillé des étapes d'acquisition
