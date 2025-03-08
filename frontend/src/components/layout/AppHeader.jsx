@@ -27,7 +27,8 @@ import {
   Compare as CompareIcon,
   Construction as ConstructionIcon,
   AccountCircle as AccountCircleIcon,
-  KeyboardArrowDown as ArrowDownIcon
+  KeyboardArrowDown as ArrowDownIcon,
+  TrendingUp as TrendingUpIcon
 } from '@mui/icons-material';
 
 /**
@@ -129,6 +130,16 @@ const AppHeader = () => {
                     <ApartmentIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText>Calculateur MULTI détaillé</ListItemText>
+                </MenuItem>
+                
+                <MenuItem 
+                  onClick={() => navigateToCalculator('/calculators/yearly-acquisition')}
+                  selected={location.pathname === '/calculators/yearly-acquisition'}
+                >
+                  <ListItemIcon>
+                    <TrendingUpIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Un immeuble par AN</ListItemText>
                 </MenuItem>
                 
                 <MenuItem 
@@ -243,6 +254,20 @@ const AppHeader = () => {
                 <ApartmentIcon />
               </ListItemIcon>
               <ListItemText primary="MULTI détaillé" />
+            </ListItem>
+            
+            <ListItem
+              button
+              component={RouterLink}
+              to="/calculators/yearly-acquisition"
+              onClick={toggleMobileMenu}
+              selected={location.pathname === '/calculators/yearly-acquisition'}
+              sx={{ pl: 4 }}
+            >
+              <ListItemIcon>
+                <TrendingUpIcon />
+              </ListItemIcon>
+              <ListItemText primary="Un immeuble par AN" />
             </ListItem>
             
             <ListItem
