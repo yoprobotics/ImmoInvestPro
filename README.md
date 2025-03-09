@@ -9,6 +9,7 @@ ImmoInvestPro propose plusieurs modules et calculateurs pour vous aider dans vot
 ### Calculateurs financiers
 
 - **[Calculateur ABD ATD](calculateurs/abd-atd/)** - Évaluez votre capacité d'emprunt avec les ratios d'Amortissement Brut de la Dette et d'Amortissement Total de la Dette
+- **[Calculateur d'Estimation et Suivi des Rénovations](calculateurs/renovation/)** - Planifiez, estimez et suivez vos projets de rénovation immobilière avec précision
 - Calculateur hypothécaire (à venir)
 - Calculateur de rendement (à venir)
 - Calculateur de cash-flow (à venir)
@@ -45,6 +46,11 @@ ImmoInvestPro/
 │   │   ├── script.js          # Logique de calcul
 │   │   ├── styles.css         # Styles CSS
 │   │   └── README.md          # Documentation du calculateur
+│   ├── renovation/             # Calculateur d'Estimation et Suivi des Rénovations
+│   │   ├── index.html         # Interface du calculateur
+│   │   ├── script.js          # Logique de calcul
+│   │   ├── styles.css         # Styles CSS
+│   │   └── README.md          # Documentation du calculateur
 │   └── [autres calculateurs]  # Futurs calculateurs
 └── [autres modules]           # Futurs modules
 ```
@@ -58,13 +64,26 @@ Le [calculateur ABD ATD](calculateurs/abd-atd/) est un outil essentiel pour les 
 
 Les seuils généralement acceptés sont de 32% pour l'ABD et 40% pour l'ATD pour un prêt conventionnel.
 
-### Fonctionnalités du calculateur
+### Fonctionnalités du calculateur ABD ATD
 
 - Calcul précis des ratios ABD et ATD
 - Évaluation automatique de la qualification de l'emprunteur
 - Visualisation graphique des ratios
 - Conseils personnalisés pour améliorer les ratios
 - Interface réactive et intuitive
+
+## Calculateur d'Estimation et Suivi des Rénovations
+
+Le [calculateur d'Estimation et Suivi des Rénovations](calculateurs/renovation/) est un outil complet pour planifier, estimer et suivre vos projets de rénovation immobilière. Il vous permet de gérer précisément vos coûts de rénovation et d'optimiser votre retour sur investissement.
+
+### Fonctionnalités du calculateur de rénovations
+
+- Gestion de projet avec informations générales et suivi d'avancement
+- Ajout et gestion des pièces à rénover avec leurs spécificités
+- Suivi budgétaire avec comparaison des coûts estimés et réels
+- Visualisations graphiques de la répartition des coûts par catégorie et par pièce
+- Synthèse complète du projet avec tableaux de bord et indicateurs de performance
+- Exportation des données en format CSV
 
 ## Contribution
 
