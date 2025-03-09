@@ -1,125 +1,95 @@
 # ImmoInvestPro
 
-## Plateforme d'analyse et de suivi d'investissements immobiliers au Québec
+ImmoInvestPro est une suite complète d'outils d'analyse et de calculateurs pour les investisseurs immobiliers, conçue pour faciliter la prise de décision et maximiser la rentabilité des investissements.
 
-ImmoInvestPro est une application complète d'analyse et de suivi d'investissements immobiliers spécifiquement adaptée au marché québécois. Elle permet aux investisseurs de tous niveaux d'analyser rapidement les opportunités, de détecter des optimisations potentielles et de suivre leurs projets.
+## Fonctionnalités
 
-## Caractéristiques principales
+ImmoInvestPro propose plusieurs modules et calculateurs pour vous aider dans votre parcours d'investissement immobilier :
 
-### Analyse rapide avec calculateurs Napkin
-- **FLIP (FIP10)**: Analysez rapidement la rentabilité des projets d'achat-rénovation-revente
-- **MULTI (PAR)**: Évaluez le potentiel des immeubles locatifs en quelques secondes ([Documentation complète](docs/calculateurs/napkin-multi.md))
+### Calculateurs financiers
 
-### Planification stratégique
-- **Un immeuble par AN**: Projetez l'évolution de votre portefeuille sur plusieurs années et planifiez votre chemin vers l'indépendance financière ([Documentation complète](docs/calculateurs/yearly-acquisition-calculator.md))
+- **[Calculateur ABD ATD](calculateurs/abd-atd/)** - Évaluez votre capacité d'emprunt avec les ratios d'Amortissement Brut de la Dette et d'Amortissement Total de la Dette
+- Calculateur hypothécaire (à venir)
+- Calculateur de rendement (à venir)
+- Calculateur de cash-flow (à venir)
+- Calculateur de flip (à venir)
+- Calculateur de taxes de mutation (à venir)
 
-### Détection d'opportunités cachées
-- Identification automatique d'optimisations potentielles
-- Analyse des changements de vocation possibles
-- Détection de potentiel de densification
+### Outils d'analyse
 
-### Tableau de bord personnalisé
-- Vue d'ensemble de votre portefeuille
-- Suivi des étapes de chaque projet
-- Organisation par type de projet (FLIP/MULTI)
+- Analyseur de marché (à venir)
+- Évaluateur de propriétés (à venir)
+- Gestionnaire de portefeuille (à venir)
 
-### Roadmaps détaillées
-- Guides pas à pas pour les projets FLIP et MULTI
-- Gestion des tâches par étape
-- Centralisation des documents importants
+## Installation et démarrage
 
-## Documentation des calculateurs
-- [Calculateur Napkin MULTI](docs/calculateurs/napkin-multi.md) - Évaluation rapide de la rentabilité d'un immeuble à revenus
-- [Calculateur Un immeuble par AN](docs/calculateurs/yearly-acquisition-calculator.md) - Planification stratégique d'acquisition d'un immeuble par année
+ImmoInvestPro est une application web qui ne nécessite pas d'installation particulière. Vous pouvez simplement cloner ce dépôt et ouvrir le fichier `index.html` dans votre navigateur pour commencer.
 
-## Modèle Freemium
-
-### Version gratuite
-- Calculateurs Napkin limités (5 analyses/mois)
-- Analyse basique des fiches descriptives
-- Dashboards limités (2 deals maximum)
-- Score de rentabilité de base
-
-### Version premium
-- Calculateurs financiers complets et illimités
-- Analyses avancées d'optimisation
-- Dashboard illimité avec organisation par portefeuille
-- Simulateur de scénarios
-- Exportation de rapports professionnels
-- Générateur de clauses légales personnalisées
-- Alertes personnalisées pour les nouvelles opportunités
-
-## Architecture technique
-
-Le projet est structuré comme suit:
-
-```
-immoinvestpro/
-├── backend/                  # API et logique métier
-│   ├── auth/                 # Authentification et gestion des utilisateurs
-│   ├── calculators/          # Calculateurs financiers
-│   ├── opportunity_finder/   # Détection d'opportunités cachées
-│   ├── recommendation_engine/# Moteur de recommandations
-│   ├── project_tracker/      # Suivi des projets
-│   └── user/                 # Gestion des utilisateurs et préférences
-├── frontend/                 # Interface utilisateur
-│   ├── auth/                 # Pages d'authentification
-│   ├── dashboard/            # Tableau de bord
-│   ├── deal_analyzer/        # Interface d'analyse
-│   ├── project/              # Gestion de projets
-│   └── subscription/         # Pages d'abonnement
-├── shared/                   # Code partagé frontend/backend
-└── config/                   # Configuration du projet
-```
-
-## Workflow utilisateur typique
-
-1. **Phase initiale (gratuite)**:
-   - L'utilisateur crée un compte
-   - Il soumet l'URL d'une fiche descriptive Centris/DuProprio
-   - Le système analyse rapidement le bien avec les calculateurs Napkin
-   - L'application indique si l'opportunité vaut la peine d'être explorée davantage
-
-2. **Phase d'exploration (partiellement gratuite)**:
-   - Le système suggère des optimisations potentielles
-   - L'utilisateur peut sauvegarder le projet dans son dashboard
-   - Le système génère une roadmap personnalisée pour le projet
-
-3. **Phase d'analyse approfondie (premium)**:
-   - Accès aux calculateurs détaillés
-   - Simulation de différents scénarios d'optimisation
-   - Génération de rapports pour présentation à des partenaires ou financiers
-   - Suivi détaillé des étapes d'acquisition
-
-## Installation et développement
-
-### Prérequis
-- Node.js (v14+)
-- MongoDB
-- NPM ou Yarn
-
-### Installation
-1. Cloner le dépôt
-```
+```bash
 git clone https://github.com/yoprobotics/ImmoInvestPro.git
 cd ImmoInvestPro
+# Ouvrez index.html dans votre navigateur
 ```
 
-2. Installer les dépendances
+Alternativement, vous pouvez accéder à l'application via GitHub Pages (lien à venir).
+
+## Structure du projet
+
 ```
-npm install
+ImmoInvestPro/
+├── index.html                 # Page d'accueil principale
+├── calculateurs/              # Répertoire des calculateurs
+│   ├── index.html             # Page d'accueil des calculateurs
+│   ├── abd-atd/               # Calculateur ABD ATD
+│   │   ├── index.html         # Interface du calculateur
+│   │   ├── script.js          # Logique de calcul
+│   │   ├── styles.css         # Styles CSS
+│   │   └── README.md          # Documentation du calculateur
+│   └── [autres calculateurs]  # Futurs calculateurs
+└── [autres modules]           # Futurs modules
 ```
 
-3. Configurer les variables d'environnement
-```
-cp .env.example .env
-```
-Éditez le fichier `.env` avec vos propres paramètres.
+## Calculateur ABD ATD
 
-4. Lancer l'application en mode développement
-```
-npm run dev
-```
+Le [calculateur ABD ATD](calculateurs/abd-atd/) est un outil essentiel pour les investisseurs immobiliers qui souhaitent évaluer leur capacité d'emprunt. Il calcule deux ratios importants utilisés par les institutions financières :
+
+- **ABD (Amortissement Brut de la Dette)** - Pourcentage du revenu mensuel brut consacré aux dépenses d'habitation (paiement hypothécaire, taxes, chauffage, etc.)
+- **ATD (Amortissement Total de la Dette)** - Pourcentage du revenu mensuel brut consacré à l'ensemble des dettes (habitation + autres dettes)
+
+Les seuils généralement acceptés sont de 32% pour l'ABD et 40% pour l'ATD pour un prêt conventionnel.
+
+### Fonctionnalités du calculateur
+
+- Calcul précis des ratios ABD et ATD
+- Évaluation automatique de la qualification de l'emprunteur
+- Visualisation graphique des ratios
+- Conseils personnalisés pour améliorer les ratios
+- Interface réactive et intuitive
+
+## Contribution
+
+Les contributions sont les bienvenues ! Si vous souhaitez améliorer ImmoInvestPro, n'hésitez pas à :
+
+1. Fork le projet
+2. Créer une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
+3. Committer vos changements (`git commit -m 'Add some AmazingFeature'`)
+4. Pousser vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrir une Pull Request
+
+## Prochaines étapes
+
+- Implémentation des autres calculateurs
+- Développement d'une version responsive mobile
+- Intégration d'une base de données pour enregistrer les calculs
+- Déploiement sur GitHub Pages
+- Ajout de fonctionnalités de partage et d'exportation des résultats
 
 ## Licence
-Ce projet est sous licence propriétaire. Tous droits réservés.
+
+Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+
+## Contact
+
+Pour toute question ou suggestion, veuillez contacter :
+- Email : [contact@immoinvestpro.com](mailto:contact@immoinvestpro.com)
+- GitHub : [yoprobotics](https://github.com/yoprobotics)
