@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur d'Estimation et Suivi des Rénovations - ImmoInvestPro</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Calculateur d'Estimation et Suivi des Rénovations</h1>
+        <p class="description">Planifiez, estimez et suivez vos projets de rénovation immobilière avec précision.</p>
+        
+        <div class="calculator-container">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="project-info">Informations Projet</button>
+                <button class="tab-button" data-tab="room-list">Liste des Pièces</button>
+                <button class="tab-button" data-tab="budget-tracking">Suivi Budgétaire</button>
+                <button class="tab-button" data-tab="summary">Synthèse</button>
+            </div>
+            
+            <div class="tab-content">
+                <!-- Onglet Informations Projet -->
+                <div id="project-info" class="tab-pane active">
+                    <h2>Informations du Projet</h2>
+                    <form id="project-form">
+                        <div class="form-group">
+                            <label for="project-name">Nom du projet</label>
+                            <input type="text" id="project-name" name="project-name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-address">Adresse de la propriété</label>
+                            <input type="text" id="project-address" name="project-address">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="project-type">Type de projet</label>
+                            <select id="project-type" name="project-type">
+                                <option value="flip">Flip</option>
+                                <option value="rental">Rénovation locative</option>
+                                <option value="personal">Résidence personnelle</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="start-date">Date de début</label>
+                                <input type="date" id="start-date" name="start-date">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="end-date">Date de fin estimée</label>
+                                <input type="date" id="end-date" name="end-date">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="total-budget">Budget total ($)</label>
+                            <input type="number" id="total-budget" name="total-budget" min="0" step="100">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="project-notes">Notes générales</label>
+                            <textarea id="project-notes" name="project-notes" rows="4"></textarea>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <button type="button" id="save-project-btn" class="primary-button">Enregistrer les informations</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Onglet Liste des Pièces -->
+                <div id="room-list" class="tab-pane">
+                    <h2>Liste des Pièces à Rénover</h2>
+                    
+                    <div class="action-buttons">
+                        <button id="add-room-btn" class="primary-button">+ Ajouter une pièce</button>
+                    </div>
+                    
+                    <div id="rooms-container">
+                        <!-- Les pièces seront ajoutées dynamiquement ici -->
+                    </div>
+                </div>
+                
+                <!-- Onglet Suivi Budgétaire -->
+                <div id="budget-tracking" class="tab-pane">
+                    <h2>Suivi Budgétaire</h2>
+                    
+                    <div class="dashboard">
+                        <div class="stats-card">
+                            <div class="stats-title">Budget Total</div>
+                            <div id="total-budget-display" class="stats-value">0 $</div>
+                        </div>
+                        
+                        <div class="stats-card">
+                            <div class="stats-title">Dépenses Estimées</div>
+                            <div id="total-estimated-display" class="stats-value">0 $</div>
+                        </div>
+                        
+                        <div class="stats-card">
+                            <div class="stats-title">Dépenses Réelles</div>
+                            <div id="total-actual-display" class="stats-value">0 $</div>
+                        </div>
+                        
+                        <div class="stats-card">
+                            <div class="stats-title">Écart</div>
+                            <div id="total-variance-display" class="stats-value">0 $</div>
+                        </div>
+                    </div>
+                    
+                    <h3>Dépenses par Catégorie</h3>
+                    <div class="budget-chart-container">
+                        <canvas id="budget-chart"></canvas>
+                    </div>
+                    
+                    <h3>Liste des Dépenses</h3>
+                    <div class="action-buttons">
+                        <button id="add-expense-btn" class="primary-button">+ Ajouter une dépense</button>
+                        <button id="export-expenses-btn" class="secondary-button">Exporter CSV</button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="expenses-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Pièce</th>
+                                    <th>Catégorie</th>
+                                    <th>Description</th>
+                                    <th>Montant Estimé</th>
+                                    <th>Montant Réel</th>
+                                    <th>Écart</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-list">
+                                <!-- Les dépenses seront ajoutées dynamiquement ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Onglet Synthèse -->
+                <div id="summary" class="tab-pane">
+                    <h2>Synthèse du Projet</h2>
+                    
+                    <div class="summary-section">
+                        <h3>Informations Générales</h3>
+                        <div id="summary-info" class="summary-info">
+                            <!-- Informations générales remplies dynamiquement -->
+                        </div>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h3>Avancement du Projet</h3>
+                        <div class="progress-container">
+                            <div id="progress-bar" class="progress-bar">
+                                <div id="progress-value" class="progress-value">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h3>Résumé Budgétaire</h3>
+                        <div class="budget-summary">
+                            <div class="summary-grid">
+                                <!-- Résumé budgétaire rempli dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h3>Répartition des Coûts par Pièce</h3>
+                        <div class="chart-container">
+                            <canvas id="room-costs-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-section">
+                        <h3>Répartition des Coûts par Catégorie</h3>
+                        <div class="chart-container">
+                            <canvas id="category-costs-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <button id="generate-report-btn" class="primary-button">Générer un rapport PDF</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modales -->
+        <div id="add-room-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Ajouter une pièce</h2>
+                <form id="add-room-form">
+                    <div class="form-group">
+                        <label for="room-name">Nom de la pièce</label>
+                        <input type="text" id="room-name" name="room-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="room-floor">Étage</label>
+                        <select id="room-floor" name="room-floor">
+                            <option value="basement">Sous-sol</option>
+                            <option value="ground">Rez-de-chaussée</option>
+                            <option value="first">1er étage</option>
+                            <option value="second">2ème étage</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="room-area">Superficie (pi²)</label>
+                        <input type="number" id="room-area" name="room-area" min="0" step="1">
+                    </div>
+                    
+                    <h3>Travaux à effectuer</h3>
+                    <div id="tasks-container">
+                        <!-- Les tâches seront ajoutées dynamiquement ici -->
+                    </div>
+                    
+                    <button type="button" id="add-task-btn" class="secondary-button">+ Ajouter une tâche</button>
+                    
+                    <div class="form-group full-width">
+                        <label for="room-notes">Notes</label>
+                        <textarea id="room-notes" name="room-notes" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="modal-buttons">
+                        <button type="button" id="cancel-room-btn" class="cancel-button">Annuler</button>
+                        <button type="submit" class="primary-button">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="add-expense-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Ajouter une dépense</h2>
+                <form id="add-expense-form">
+                    <div class="form-group">
+                        <label for="expense-date">Date</label>
+                        <input type="date" id="expense-date" name="expense-date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expense-room">Pièce</label>
+                        <select id="expense-room" name="expense-room" required>
+                            <option value="">-- Sélectionnez une pièce --</option>
+                            <!-- Options remplies dynamiquement -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expense-category">Catégorie</label>
+                        <select id="expense-category" name="expense-category" required>
+                            <option value="">-- Sélectionnez une catégorie --</option>
+                            <option value="demolition">Démolition</option>
+                            <option value="plumbing">Plomberie</option>
+                            <option value="electrical">Électricité</option>
+                            <option value="walls">Murs et cloisons</option>
+                            <option value="floors">Planchers</option>
+                            <option value="ceilings">Plafonds</option>
+                            <option value="painting">Peinture</option>
+                            <option value="windows">Fenêtres</option>
+                            <option value="doors">Portes</option>
+                            <option value="kitchen">Cuisine</option>
+                            <option value="bathroom">Salle de bain</option>
+                            <option value="hvac">Chauffage/Climatisation</option>
+                            <option value="other">Autre</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="expense-description">Description</label>
+                        <input type="text" id="expense-description" name="expense-description" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expense-estimated">Montant estimé ($)</label>
+                        <input type="number" id="expense-estimated" name="expense-estimated" min="0" step="0.01" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expense-actual">Montant réel ($)</label>
+                        <input type="number" id="expense-actual" name="expense-actual" min="0" step="0.01">
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="expense-notes">Notes</label>
+                        <textarea id="expense-notes" name="expense-notes" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="modal-buttons">
+                        <button type="button" id="cancel-expense-btn" class="cancel-button">Annuler</button>
+                        <button type="submit" class="primary-button">Ajouter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="back-to-calculators">
+        <a href="../index.html">← Retour aux calculateurs</a>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
