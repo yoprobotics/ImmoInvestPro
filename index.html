@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImmoInvestPro - Plateforme d'investissement immobilier</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 2rem 0;
+        }
+        
+        .header-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .tagline {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        
+        nav {
+            background-color: #34495e;
+            padding: 1rem 0;
+        }
+        
+        .nav-list {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+        }
+        
+        .nav-list li {
+            margin: 0 1rem;
+        }
+        
+        .nav-list a {
+            color: white;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .nav-list a:hover {
+            color: #3498db;
+        }
+        
+        .hero {
+            background-color: #3498db;
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background-color: #2ecc71;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .cta-button:hover {
+            background-color: #27ae60;
+        }
+        
+        .features {
+            margin-bottom: 2rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        
+        .feature-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #3498db;
+        }
+        
+        .feature-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            color: #2c3e50;
+        }
+        
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+        }
+        
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .footer-links {
+            margin-bottom: 1rem;
+        }
+        
+        .footer-links a {
+            color: white;
+            margin: 0 1rem;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .footer-links a:hover {
+            color: #3498db;
+        }
+        
+        .copyright {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #bdc3c7;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-list {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .nav-list li {
+                margin: 0.5rem 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">ImmoInvestPro</div>
+                <p class="tagline">Votre plateforme d'analyse pour des investissements immobiliers intelligents</p>
+            </div>
+        </div>
+    </header>
+    
+    <nav>
+        <div class="container">
+            <ul class="nav-list">
+                <li><a href="#features">Fonctionnalités</a></li>
+                <li><a href="calculateurs/index.html">Calculateurs</a></li>
+                <li><a href="#about">À propos</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <section class="hero">
+        <div class="container">
+            <h1>Maximisez vos investissements immobiliers</h1>
+            <p>ImmoInvestPro est une suite d'outils puissants conçus pour vous aider à prendre des décisions éclairées dans vos projets d'investissement immobilier. Des analyses financières aux prévisions de rendement, nous vous offrons tout ce dont vous avez besoin.</p>
+            <a href="calculateurs/index.html" class="cta-button">Accéder aux calculateurs</a>
+        </div>
+    </section>
+    
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Nos fonctionnalités</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3 class="feature-title">Analyses financières détaillées</h3>
+                    <p>Calculez précisément le rendement, le cash-flow, le ROI et bien d'autres métriques essentielles.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🏢</div>
+                    <h3 class="feature-title">Évaluation de propriétés</h3>
+                    <p>Analysez le potentiel d'un bien immobilier en tenant compte de nombreux facteurs de marché.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">🔍</div>
+                    <h3 class="feature-title">Recherche de marchés</h3>
+                    <p>Identifiez les zones géographiques les plus prometteuses pour vos investissements.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📝</div>
+                    <h3 class="feature-title">Gestion de projets</h3>
+                    <p>Suivez l'évolution de vos projets immobiliers de l'acquisition à la revente ou la mise en location.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3 class="feature-title">Planification fiscale</h3>
+                    <p>Optimisez votre stratégie fiscale pour maximiser vos profits à court et long terme.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3 class="feature-title">Accessible partout</h3>
+                    <p>Accédez à vos données et analyses depuis n'importe quel appareil, n'importe où.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section id="about" class="about">
+        <div class="container">
+            <h2 class="section-title">À propos d'ImmoInvestPro</h2>
+            <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+                <p style="margin-bottom: 1rem;">ImmoInvestPro est né de la passion pour l'investissement immobilier et de la nécessité d'avoir des outils fiables pour prendre des décisions basées sur des données précises.</p>
+                <p style="margin-bottom: 1rem;">Notre mission est de démocratiser l'accès aux analyses immobilières sophistiquées et de permettre à chaque investisseur de maximiser ses chances de succès.</p>
+                <p>Que vous soyez un investisseur débutant ou expérimenté, notre plateforme évolutive s'adapte à vos besoins et grandit avec vous.</p>
+            </div>
+        </div>
+    </section>
+    
+    <section id="contact" class="contact" style="background-color: #f9f9f9; padding: 3rem 0; margin-top: 2rem;">
+        <div class="container">
+            <h2 class="section-title">Contactez-nous</h2>
+            <div style="text-align: center;">
+                <p style="margin-bottom: 2rem;">Des questions ou des suggestions? N'hésitez pas à nous contacter!</p>
+                <a href="mailto:contact@immoinvestpro.com" style="color: #3498db; font-size: 1.2rem; text-decoration: none;">contact@immoinvestpro.com</a>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-links">
+                    <a href="#features">Fonctionnalités</a>
+                    <a href="calculateurs/index.html">Calculateurs</a>
+                    <a href="#about">À propos</a>
+                    <a href="#contact">Contact</a>
+                </div>
+                <p class="copyright">ImmoInvestPro © 2025 - Tous droits réservés</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
