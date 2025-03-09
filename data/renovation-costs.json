@@ -1,0 +1,814 @@
+{
+  "lastUpdated": "2025-03-08",
+  "disclaimer": "Les prix peuvent changer d'une région à l'autre, et d'une année à l'autre. Vous devez mettre à jour les prix régulièrement.",
+  "categories": [
+    {
+      "name": "Extérieur",
+      "items": [
+        {
+          "name": "Toit (bardeau)",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouveau bardeau)",
+              "unit": "pi²",
+              "cost": 6.00
+            },
+            {
+              "description": "Petite maison (1200 pc²)",
+              "unit": "un",
+              "cost": 6500.00
+            },
+            {
+              "description": "Maison moyenne (1500 pc²)",
+              "unit": "un",
+              "cost": 8000.00
+            },
+            {
+              "description": "Grande maison (2500 pc²)",
+              "unit": "un",
+              "cost": 12000.00
+            }
+          ]
+        },
+        {
+          "name": "Toit (TPO et EPDM)",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouvelle toiture)",
+              "unit": "pi²",
+              "cost": 9.50
+            }
+          ]
+        },
+        {
+          "name": "Toit (membrane élastomère)",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouvelle toiture)",
+              "unit": "pi²",
+              "cost": 13.65
+            }
+          ]
+        },
+        {
+          "name": "Toit (multicouche gravier & bitume)",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouvelle toiture)",
+              "unit": "pi²",
+              "cost": 7.00
+            }
+          ]
+        },
+        {
+          "name": "Revêtement (maçonnerie)",
+          "subItems": [
+            {
+              "description": "Réparer les joints de mortier",
+              "unit": "pi²",
+              "cost": 12.00
+            },
+            {
+              "description": "Ventre de Boeuf",
+              "unit": "pi²",
+              "cost": 25.00
+            },
+            {
+              "description": "Installation de brique neuve",
+              "unit": "un",
+              "cost": 35.00
+            },
+            {
+              "description": "Allèges",
+              "unit": "un",
+              "cost": 500.00
+            },
+            {
+              "description": "Linteaux",
+              "unit": "un",
+              "cost": 1600.00
+            },
+            {
+              "description": "Crépi de fondation (remplacement complet)",
+              "unit": "pi²",
+              "cost": 6.00
+            },
+            {
+              "description": "Petite maison (1200 pc²)",
+              "unit": "un",
+              "cost": 1260.00
+            },
+            {
+              "description": "Maison moyenne (1500 pc²)",
+              "unit": "un",
+              "cost": 1440.00
+            },
+            {
+              "description": "Grande maison (2500 pc²)",
+              "unit": "un",
+              "cost": 1800.00
+            }
+          ]
+        },
+        {
+          "name": "Revêtement de vinyle",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouveau revêtement)",
+              "unit": "pi²",
+              "cost": 7.00
+            }
+          ]
+        },
+        {
+          "name": "Revêtement d'aluminium",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouveau revêtement)",
+              "unit": "pi²",
+              "cost": 9.00
+            }
+          ]
+        },
+        {
+          "name": "Fibre de bois (CanExel)",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouveau revêtement)",
+              "unit": "pi²",
+              "cost": 10.00
+            }
+          ]
+        },
+        {
+          "name": "Fibrociment",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouveau revêtement)",
+              "unit": "pi²",
+              "cost": 11.00
+            }
+          ]
+        },
+        {
+          "name": "Revêtement d'acrylique",
+          "subItems": [
+            {
+              "description": "Superficie (arracher et poser nouveau revêtement)",
+              "unit": "pi²",
+              "cost": 11.00
+            }
+          ]
+        },
+        {
+          "name": "Peinture (Spray-Net)",
+          "subItems": [
+            {
+              "description": "Environ 25% du coût de remplacement du revêtement",
+              "unit": "pi²",
+              "cost": 2.40
+            },
+            {
+              "description": "Petite maison (1200 pc²)",
+              "unit": "un",
+              "cost": 3360.00
+            },
+            {
+              "description": "Maison moyenne (1500 pc²)",
+              "unit": "un",
+              "cost": 7680.00
+            },
+            {
+              "description": "Grande maison (2500 pc²)",
+              "unit": "un",
+              "cost": 9600.00
+            }
+          ]
+        },
+        {
+          "name": "Fascia",
+          "subItems": [
+            {
+              "description": "Pose de fascia",
+              "unit": "pl",
+              "cost": 18.00
+            }
+          ]
+        },
+        {
+          "name": "Gouttière (vinyle)",
+          "subItems": [
+            {
+              "description": "Pose ou remplacement",
+              "unit": "pl",
+              "cost": 4.00
+            }
+          ]
+        },
+        {
+          "name": "Gouttière (aluminium)",
+          "subItems": [
+            {
+              "description": "Pose ou remplacement",
+              "unit": "pl",
+              "cost": 5.00
+            },
+            {
+              "description": "Petite maison (1200 pc²)",
+              "unit": "un",
+              "cost": 700.00
+            },
+            {
+              "description": "Maison moyenne (1500 pc²)",
+              "unit": "un",
+              "cost": 800.00
+            },
+            {
+              "description": "Grande maison (2500 pc²)",
+              "unit": "un",
+              "cost": 1000.00
+            }
+          ]
+        },
+        {
+          "name": "Gouttière (acier galvanisé)",
+          "subItems": [
+            {
+              "description": "Pose ou remplacement",
+              "unit": "pl",
+              "cost": 9.00
+            }
+          ]
+        },
+        {
+          "name": "Gouttière (cuivre)",
+          "subItems": [
+            {
+              "description": "Pose ou remplacement",
+              "unit": "pl",
+              "cost": 25.00
+            }
+          ]
+        },
+        {
+          "name": "Fondation et drainage",
+          "subItems": [
+            {
+              "description": "Fissures",
+              "unit": "un",
+              "cost": 750.00
+            },
+            {
+              "description": "Stabilisation par pieu d'acier (typiquement 1 par 6 pieds de façade)",
+              "unit": "un",
+              "cost": 2500.00
+            },
+            {
+              "description": "Reprise de fondation en sous-œuvre",
+              "unit": "pl",
+              "cost": 400.00
+            },
+            {
+              "description": "Petite maison (1200 pc²)",
+              "unit": "un",
+              "cost": 56000.00
+            },
+            {
+              "description": "Maison moyenne (1500 pc²)",
+              "unit": "un",
+              "cost": 64000.00
+            },
+            {
+              "description": "Grande maison (2500 pc²)",
+              "unit": "un",
+              "cost": 80000.00
+            },
+            {
+              "description": "Drain français extérieur (sans remise en état des lieux)",
+              "unit": "pl",
+              "cost": 100.00
+            },
+            {
+              "description": "Drain français intérieur (sans remise en état des lieux)",
+              "unit": "pl",
+              "cost": 50.00
+            }
+          ]
+        },
+        {
+          "name": "Paysagement",
+          "subItems": [
+            {
+              "description": "Réparation mineur",
+              "unit": "un",
+              "cost": 700.00
+            },
+            {
+              "description": "Nettoyer le terrain",
+              "unit": "un",
+              "cost": 250.00
+            },
+            {
+              "description": "Terrassement facile",
+              "unit": "un",
+              "cost": 1000.00
+            },
+            {
+              "description": "Terrassement difficile",
+              "unit": "un",
+              "cost": 2500.00
+            },
+            {
+              "description": "Système d'irrigation",
+              "unit": "un",
+              "cost": 1300.00
+            }
+          ]
+        },
+        {
+          "name": "Fenêtre",
+          "subItems": [
+            {
+              "description": "Fenêtre en PVC",
+              "unit": "un",
+              "cost": 1000.00
+            },
+            {
+              "description": "Fenêtre en aluminium",
+              "unit": "un",
+              "cost": 1200.00
+            },
+            {
+              "description": "Fenêtre hybride",
+              "unit": "un",
+              "cost": 1350.00
+            }
+          ]
+        },
+        {
+          "name": "Porte",
+          "subItems": [
+            {
+              "description": "Porte d'acier",
+              "unit": "un",
+              "cost": 1500.00
+            },
+            {
+              "description": "Porte de bois (bas de gamme)",
+              "unit": "un",
+              "cost": 300.00
+            },
+            {
+              "description": "Porte de bois (moyen gamme)",
+              "unit": "un",
+              "cost": 1800.00
+            },
+            {
+              "description": "Porte de bois (haut de gamme)",
+              "unit": "un",
+              "cost": 4500.00
+            },
+            {
+              "description": "Porte de garage (modèle de base)",
+              "unit": "un",
+              "cost": 1000.00
+            },
+            {
+              "description": "Ouvre-porte automatique de garage",
+              "unit": "un",
+              "cost": 500.00
+            },
+            {
+              "description": "Remplacement d'une clôture en bois traité",
+              "unit": "pl",
+              "cost": 25.00
+            }
+          ]
+        },
+        {
+          "name": "Galerie/patio",
+          "subItems": [
+            {
+              "description": "Refaire Patio 10 x 10 en bois traité",
+              "unit": "un",
+              "cost": 2200.00
+            }
+          ]
+        },
+        {
+          "name": "Entrée d'auto",
+          "subItems": [
+            {
+              "description": "Réparation asphalte",
+              "unit": "un",
+              "cost": 600.00
+            },
+            {
+              "description": "Asphalte (installation neuve)",
+              "unit": "pi²",
+              "cost": 10.00
+            },
+            {
+              "description": "Pavé-uni (installation neuve)",
+              "unit": "pi²",
+              "cost": 15.00
+            },
+            {
+              "description": "Béton (installation neuve)",
+              "unit": "pi²",
+              "cost": 20.00
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Intérieur",
+      "items": [
+        {
+          "name": "Peinture",
+          "subItems": [
+            {
+              "description": "Superficie",
+              "unit": "pi²",
+              "cost": 2.00
+            },
+            {
+              "description": "Petite maison (1000 pc²) incluant tirage de joints en partie",
+              "unit": "un",
+              "cost": 5000.00
+            },
+            {
+              "description": "Maison moyenne (1500 pc²) incluant tirage de joints en partie",
+              "unit": "un",
+              "cost": 7500.00
+            },
+            {
+              "description": "Grande maison (2500 pc²) incluant tirage de joints en partie",
+              "unit": "un",
+              "cost": 10000.00
+            }
+          ]
+        },
+        {
+          "name": "Gypse",
+          "subItems": [
+            {
+              "description": "Réparation de platre règle rapide entre 500 et 1000$",
+              "unit": "un",
+              "cost": 500.00
+            },
+            {
+              "description": "Remplacemement de feuille 4x8 incluant platre et peinture",
+              "unit": "un",
+              "cost": 55.00
+            }
+          ]
+        },
+        {
+          "name": "Salle de Bain",
+          "subItems": [
+            {
+              "description": "Grande salle de bain refaite au complet",
+              "unit": "un",
+              "cost": 10000.00
+            },
+            {
+              "description": "Petite salle de bain refaite au complet",
+              "unit": "un",
+              "cost": 5000.00
+            }
+          ]
+        },
+        {
+          "name": "Cuisine",
+          "subItems": [
+            {
+              "description": "Haut de gamme bois",
+              "unit": "un",
+              "cost": 15000.00
+            },
+            {
+              "description": "Moyen gamme thermoplastique polymere",
+              "unit": "un",
+              "cost": 10000.00
+            },
+            {
+              "description": "Bas de gamme (mélamine)",
+              "unit": "un",
+              "cost": 7500.00
+            },
+            {
+              "description": "Petite (mélamine)",
+              "unit": "un",
+              "cost": 5000.00
+            },
+            {
+              "description": "Cuisine de base (mélamine, comptoir stratifié, soft close, sans poignées)",
+              "unit": "pl",
+              "cost": 200.00
+            },
+            {
+              "description": "Restauration (peinture ou rempl. Porte)",
+              "unit": "un",
+              "cost": 2000.00
+            },
+            {
+              "description": "Comptoir stratifié",
+              "unit": "pl",
+              "cost": 35.00
+            }
+          ]
+        },
+        {
+          "name": "Moulure et porte",
+          "subItems": [
+            {
+              "description": "Moulure de mdf",
+              "unit": "pl",
+              "cost": 3.00
+            },
+            {
+              "description": "Moulure de bois",
+              "unit": "pl",
+              "cost": 5.00
+            },
+            {
+              "description": "Porte coulissante",
+              "unit": "un",
+              "cost": 124.99
+            },
+            {
+              "description": "Porte intérieure prémontée et assemblée",
+              "unit": "un",
+              "cost": 82.95
+            },
+            {
+              "description": "Porte pliante",
+              "unit": "un",
+              "cost": 55.00
+            }
+          ]
+        },
+        {
+          "name": "Rampe et marche",
+          "subItems": [
+            {
+              "description": "Rampe de bois franc",
+              "unit": "un",
+              "cost": 2000.00
+            },
+            {
+              "description": "Marche de bois franc",
+              "unit": "un",
+              "cost": 50.00
+            }
+          ]
+        },
+        {
+          "name": "Plancher",
+          "subItems": [
+            {
+              "description": "Plancher de bois franc de base (chêne, érable, merisier, etc.)",
+              "unit": "pi²",
+              "cost": 7.00
+            },
+            {
+              "description": "Plancher de bois franc exotique (acajou, jatoba, etc.)",
+              "unit": "pi²",
+              "cost": 12.00
+            },
+            {
+              "description": "Sabler et vernir un plancher",
+              "unit": "pc²",
+              "cost": 2.25
+            },
+            {
+              "description": "Plancher de céramique / porcelaine",
+              "unit": "pi²",
+              "cost": 7.50
+            },
+            {
+              "description": "Plancher flottant",
+              "unit": "pi²",
+              "cost": 5.00
+            },
+            {
+              "description": "Tapis",
+              "unit": "pi²",
+              "cost": 2.00
+            }
+          ]
+        },
+        {
+          "name": "Plomberie",
+          "subItems": [
+            {
+              "description": "Chauffe-eau",
+              "unit": "un",
+              "cost": 575.00
+            },
+            {
+              "description": "Refaire la plomberie intérieure maison moyenne (1500 pc²)",
+              "unit": "un",
+              "cost": 7500.00
+            },
+            {
+              "description": "Sump Pump",
+              "unit": "un",
+              "cost": 350.00
+            },
+            {
+              "description": "Fosse septique et champ d'épuration",
+              "unit": "un",
+              "cost": 10000.00
+            }
+          ]
+        },
+        {
+          "name": "Électricité",
+          "subItems": [
+            {
+              "description": "Changement de 100 A à 200 A",
+              "unit": "un",
+              "cost": 1800.00
+            },
+            {
+              "description": "Remplacement panneau à fusible par disjoncteur",
+              "unit": "un",
+              "cost": 750.00
+            },
+            {
+              "description": "Lumière encastrée",
+              "unit": "un",
+              "cost": 50.00
+            },
+            {
+              "description": "Luminaire",
+              "unit": "un",
+              "cost": 100.00
+            },
+            {
+              "description": "Prise  /interrupteur électrique remplacement",
+              "unit": "un",
+              "cost": 5.00
+            },
+            {
+              "description": "Nouvelle prise ou interrupteur",
+              "unit": "un",
+              "cost": 50.00
+            },
+            {
+              "description": "Plinthe électrique remplacement",
+              "unit": "un",
+              "cost": 150.00
+            },
+            {
+              "description": "Refaire l'électricité intérieure maison moyenne (1500 pc²)",
+              "unit": "un",
+              "cost": 7500.00
+            }
+          ]
+        },
+        {
+          "name": "Isolation",
+          "subItems": [
+            {
+              "description": "Murs: Uréthane giclée (4 pouces d'épaisseur)",
+              "unit": "pl",
+              "cost": 35.00
+            },
+            {
+              "description": "Plancher: Uréthane giclée (2 pouces d'épaisseur)",
+              "unit": "pi²",
+              "cost": 2.00
+            },
+            {
+              "description": "Lisse: Uréthane giclée (maison moyenne)",
+              "unit": "un",
+              "cost": 2000.00
+            },
+            {
+              "description": "Vermiculite (grenier): Décontamination",
+              "unit": "pi²",
+              "cost": 8.00
+            }
+          ]
+        },
+        {
+          "name": "Chauffage/AC",
+          "subItems": [
+            {
+              "description": "Conversion de fournaise huile  à l'électricité",
+              "unit": "un",
+              "cost": 5000.00
+            },
+            {
+              "description": "Remplacement de fournaise",
+              "unit": "un",
+              "cost": 2200.00
+            },
+            {
+              "description": "Remplacement A/C",
+              "unit": "un",
+              "cost": 2200.00
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Divers",
+      "items": [
+        {
+          "name": "Conteneur",
+          "subItems": [
+            {
+              "description": "20 verge",
+              "unit": "un",
+              "cost": 350.00
+            },
+            {
+              "description": "40 verge",
+              "unit": "un",
+              "cost": 550.00
+            }
+          ]
+        },
+        {
+          "name": "Démolition",
+          "subItems": [
+            {
+              "description": "Projet complet (entrepreneur général)",
+              "unit": "un",
+              "cost": 2500.00
+            },
+            {
+              "description": "Projet complet (journalier)",
+              "unit": "un",
+              "cost": 1250.00
+            }
+          ]
+        },
+        {
+          "name": "Permis de construction",
+          "subItems": [
+            {
+              "description": "Permis Rénovation",
+              "unit": "un",
+              "cost": 60.00
+            },
+            {
+              "description": "Permis de conteneur (Montréal), par jour",
+              "unit": "un",
+              "cost": 100.00
+            },
+            {
+              "description": "Permis de démolition",
+              "unit": "un",
+              "cost": 150.00
+            }
+          ]
+        },
+        {
+          "name": "Designer",
+          "subItems": [
+            {
+              "description": "Mandat de design et suivi de projet (incluant plans et choix matériaux)",
+              "unit": "un",
+              "cost": 3500.00
+            }
+          ]
+        },
+        {
+          "name": "Piscine",
+          "subItems": [
+            {
+              "description": "Réparation",
+              "unit": "un",
+              "cost": 1000.00
+            }
+          ]
+        },
+        {
+          "name": "Chantier",
+          "subItems": [
+            {
+              "description": "Nettoyage",
+              "unit": "un",
+              "cost": 450.00
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "contingency": {
+    "recommended": {
+      "min": 7,
+      "max": 15,
+      "default": 15
+    },
+    "description": "Pourcentage à ajouter au total pour les imprévus"
+  }
+}
