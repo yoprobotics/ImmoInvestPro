@@ -19,6 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateBudgetCharts();
             } else if (tabId === 'summary') {
                 updateSummary();
+            } else if (tabId === 'material-costs') {
+                loadRenovationCosts();
             }
         });
     });
@@ -34,6 +36,173 @@ document.addEventListener('DOMContentLoaded', function() {
         rooms: [],
         expenses: []
     };
+    
+    // Données des coûts de rénovation
+    let renovationCostsData = null;
+    
+    // Charger les coûts de rénovation depuis le fichier JSON
+    async function loadRenovationCosts() {
+        try {
+            // Vérifier si les données sont déjà chargées
+            if (renovationCostsData !== null) {
+                renderRenovationCosts();
+                return;
+            }
+            
+            // Charger les données depuis le fichier JSON
+            const response = await fetch('/data/renovation-costs.json');
+            if (!response.ok) {
+                throw new Error('Impossible de charger les données des coûts de rénovation');
+            }
+            
+            renovationCostsData = await response.json();
+            
+            // Afficher la date de dernière mise à jour
+            document.getElementById('costs-last-updated').textContent = "Mise à jour: " + renovationCostsData.lastUpdated;
+            
+            // Afficher l'avertissement
+            document.getElementById('costs-disclaimer').textContent = renovationCostsData.disclaimer;
+            
+            // Afficher les coûts de rénovation
+            renderRenovationCosts();
+        } catch (error) {
+            console.error('Erreur lors du chargement des coûts de rénovation:', error);
+            showNotification('Erreur lors du chargement des coûts de rénovation', 'error');
+        }
+    }
+    
+    // Afficher les coûts de rénovation
+    function renderRenovationCosts() {
+        if (!renovationCostsData) return;
+        
+        const costsContainer = document.getElementById('renovation-costs-container');
+        costsContainer.innerHTML = '';
+        
+        // Créer un accordéon pour chaque catégorie
+        renovationCostsData.categories.forEach(category => {
+            const categoryAccordion = document.createElement('div');
+            categoryAccordion.className = 'costs-category';
+            
+            // Entête de la catégorie
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'costs-category-header';
+            categoryHeader.innerHTML = `
+                <h3>${category.name}</h3>
+                <span class="accordion-icon">▼</span>
+            `;
+            
+            // Contenu de la catégorie (initialement masqué)
+            const categoryContent = document.createElement('div');
+            categoryContent.className = 'costs-category-content';
+            
+            // Créer un tableau pour chaque item de la catégorie
+            category.items.forEach(item => {
+                const itemSection = document.createElement('div');
+                itemSection.className = 'costs-item';
+                
+                const itemTitle = document.createElement('h4');
+                itemTitle.textContent = item.name;
+                itemSection.appendChild(itemTitle);
+                
+                const itemTable = document.createElement('table');
+                itemTable.className = 'costs-table';
+                itemTable.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Unité</th>
+                            <th>Coût</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${item.subItems.map(subItem => `
+                            <tr>
+                                <td>${subItem.description}</td>
+                                <td>${subItem.unit}</td>
+                                <td>${formatCurrency(subItem.cost)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                
+                itemSection.appendChild(itemTable);
+                categoryContent.appendChild(itemSection);
+            });
+            
+            // Ajouter les éléments à l'accordéon
+            categoryAccordion.appendChild(categoryHeader);
+            categoryAccordion.appendChild(categoryContent);
+            costsContainer.appendChild(categoryAccordion);
+            
+            // Ajouter un événement de clic pour l'accordéon
+            categoryHeader.addEventListener('click', () => {
+                categoryContent.style.display = categoryContent.style.display === 'block' ? 'none' : 'block';
+                categoryHeader.querySelector('.accordion-icon').textContent = categoryContent.style.display === 'block' ? '▲' : '▼';
+            });
+        });
+        
+        // Ajouter la section du pourcentage de contingence
+        const contingencySection = document.createElement('div');
+        contingencySection.className = 'costs-contingency';
+        contingencySection.innerHTML = `
+            <h3>Contingence recommandée</h3>
+            <p>Il est recommandé d'ajouter entre ${renovationCostsData.contingency.recommended.min}% et ${renovationCostsData.contingency.recommended.max}% au coût total pour les imprévus.</p>
+            <p>Valeur par défaut: ${renovationCostsData.contingency.recommended.default}%</p>
+        `;
+        costsContainer.appendChild(contingencySection);
+    }
+    
+    // Ajouter un nouvel onglet pour les coûts de rénovation
+    function addMaterialCostsTab() {
+        // Vérifier si l'onglet existe déjà
+        if (document.getElementById('material-costs')) {
+            return;
+        }
+        
+        // Ajouter le bouton d'onglet
+        const tabsContainer = document.querySelector('.tabs');
+        const materialCostsButton = document.createElement('button');
+        materialCostsButton.className = 'tab-button';
+        materialCostsButton.setAttribute('data-tab', 'material-costs');
+        materialCostsButton.innerHTML = `
+            <i class="fas fa-money-bill-wave"></i>
+            Coûts des matériaux
+        `;
+        tabsContainer.appendChild(materialCostsButton);
+        
+        // Ajouter le contenu de l'onglet
+        const tabsContent = document.querySelector('.tab-content');
+        const materialCostsPane = document.createElement('div');
+        materialCostsPane.className = 'tab-pane';
+        materialCostsPane.id = 'material-costs';
+        materialCostsPane.innerHTML = `
+            <div class="section-header">
+                <h2>Coûts des matériaux et travaux</h2>
+                <p id="costs-last-updated" class="last-updated">Chargement des données...</p>
+            </div>
+            <div class="costs-info">
+                <p id="costs-disclaimer" class="disclaimer">Chargement des données...</p>
+            </div>
+            <div id="renovation-costs-container" class="costs-container">
+                <p class="loading">Chargement des coûts de rénovation...</p>
+            </div>
+        `;
+        tabsContent.appendChild(materialCostsPane);
+        
+        // Ajouter l'événement de clic sur le bouton
+        materialCostsButton.addEventListener('click', () => {
+            // Retirer la classe active de tous les boutons et onglets
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            
+            // Ajouter la classe active au bouton et à l'onglet
+            materialCostsButton.classList.add('active');
+            materialCostsPane.classList.add('active');
+            
+            // Charger les coûts de rénovation
+            loadRenovationCosts();
+        });
+    }
     
     // ------------------- GESTION DES INFORMATIONS DU PROJET ------------------- //
     
@@ -132,6 +301,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label for="task-cost-${taskIndex}">Coût estimé ($)</label>
                         <input type="number" id="task-cost-${taskIndex}" class="task-cost" min="0" step="0.01" required>
                     </div>
+                    <div class="form-group">
+                        <button type="button" class="btn-small btn-select-cost" data-index="${taskIndex}">
+                            Sélectionner le coût
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -141,6 +315,252 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ajouter l'événement de suppression
         taskItem.querySelector('.task-delete-btn').addEventListener('click', function() {
             tasksContainer.removeChild(taskItem);
+        });
+        
+        // Ajouter l'événement pour sélectionner un coût à partir du catalogue
+        taskItem.querySelector('.btn-select-cost').addEventListener('click', function() {
+            const index = this.getAttribute('data-index');
+            openCostCatalogModal(index);
+        });
+    }
+    
+    // Fonction pour ouvrir la modale du catalogue de coûts
+    function openCostCatalogModal(taskIndex) {
+        // Charger les coûts de rénovation si ce n'est pas déjà fait
+        if (renovationCostsData === null) {
+            loadRenovationCosts().then(() => {
+                showCostCatalogModal(taskIndex);
+            });
+        } else {
+            showCostCatalogModal(taskIndex);
+        }
+    }
+    
+    // Fonction pour afficher la modale du catalogue de coûts
+    function showCostCatalogModal(taskIndex) {
+        // Vérifier si la modale existe déjà, sinon la créer
+        let costCatalogModal = document.getElementById('cost-catalog-modal');
+        if (!costCatalogModal) {
+            costCatalogModal = document.createElement('div');
+            costCatalogModal.id = 'cost-catalog-modal';
+            costCatalogModal.className = 'modal';
+            costCatalogModal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Catalogue des coûts de rénovation</h2>
+                    <div class="modal-body">
+                        <div class="filters">
+                            <div class="form-group">
+                                <label for="category-filter">Catégorie</label>
+                                <select id="category-filter">
+                                    <option value="all">Toutes les catégories</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="item-filter">Élément</label>
+                                <select id="item-filter">
+                                    <option value="all">Tous les éléments</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="search-filter">Recherche</label>
+                                <input type="text" id="search-filter" placeholder="Rechercher...">
+                            </div>
+                        </div>
+                        <div id="cost-catalog-results" class="catalog-results">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Description</th>
+                                        <th>Unité</th>
+                                        <th>Coût</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Les résultats seront ajoutés ici -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="close-catalog-btn" class="btn">Fermer</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(costCatalogModal);
+            
+            // Ajouter les événements pour fermer la modale
+            costCatalogModal.querySelector('.close').addEventListener('click', function() {
+                costCatalogModal.style.display = 'none';
+            });
+            
+            document.getElementById('close-catalog-btn').addEventListener('click', function() {
+                costCatalogModal.style.display = 'none';
+            });
+            
+            // Ajouter les événements pour les filtres
+            document.getElementById('category-filter').addEventListener('change', function() {
+                updateItemFilter();
+                filterCostCatalog();
+            });
+            
+            document.getElementById('item-filter').addEventListener('change', function() {
+                filterCostCatalog();
+            });
+            
+            document.getElementById('search-filter').addEventListener('input', function() {
+                filterCostCatalog();
+            });
+        }
+        
+        // Stocker l'index de la tâche dans la modale
+        costCatalogModal.setAttribute('data-task-index', taskIndex);
+        
+        // Remplir les filtres
+        populateCatalogFilters();
+        
+        // Filtrer le catalogue
+        filterCostCatalog();
+        
+        // Afficher la modale
+        costCatalogModal.style.display = 'block';
+    }
+    
+    // Fonction pour remplir les filtres du catalogue
+    function populateCatalogFilters() {
+        if (!renovationCostsData) return;
+        
+        const categoryFilter = document.getElementById('category-filter');
+        
+        // Vider les options actuelles
+        while (categoryFilter.options.length > 1) {
+            categoryFilter.remove(1);
+        }
+        
+        // Ajouter les options de catégorie
+        renovationCostsData.categories.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category.name;
+            option.textContent = category.name;
+            categoryFilter.appendChild(option);
+        });
+        
+        // Mettre à jour le filtre d'items
+        updateItemFilter();
+    }
+    
+    // Fonction pour mettre à jour le filtre d'items en fonction de la catégorie sélectionnée
+    function updateItemFilter() {
+        if (!renovationCostsData) return;
+        
+        const categoryFilter = document.getElementById('category-filter');
+        const itemFilter = document.getElementById('item-filter');
+        const selectedCategory = categoryFilter.value;
+        
+        // Vider les options actuelles
+        while (itemFilter.options.length > 1) {
+            itemFilter.remove(1);
+        }
+        
+        // Si toutes les catégories sont sélectionnées, afficher tous les items
+        if (selectedCategory === 'all') {
+            renovationCostsData.categories.forEach(category => {
+                category.items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = category.name + '|' + item.name;
+                    option.textContent = item.name;
+                    itemFilter.appendChild(option);
+                });
+            });
+        } else {
+            // Sinon, afficher uniquement les items de la catégorie sélectionnée
+            const category = renovationCostsData.categories.find(c => c.name === selectedCategory);
+            if (category) {
+                category.items.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = category.name + '|' + item.name;
+                    option.textContent = item.name;
+                    itemFilter.appendChild(option);
+                });
+            }
+        }
+    }
+    
+    // Fonction pour filtrer le catalogue de coûts
+    function filterCostCatalog() {
+        if (!renovationCostsData) return;
+        
+        const categoryFilter = document.getElementById('category-filter');
+        const itemFilter = document.getElementById('item-filter');
+        const searchFilter = document.getElementById('search-filter');
+        const resultsContainer = document.getElementById('cost-catalog-results').querySelector('tbody');
+        
+        const selectedCategory = categoryFilter.value;
+        const selectedItem = itemFilter.value;
+        const searchTerm = searchFilter.value.toLowerCase();
+        
+        // Vider les résultats actuels
+        resultsContainer.innerHTML = '';
+        
+        // Filtrer les coûts
+        let filteredItems = [];
+        
+        renovationCostsData.categories.forEach(category => {
+            // Vérifier si la catégorie est sélectionnée
+            if (selectedCategory === 'all' || selectedCategory === category.name) {
+                category.items.forEach(item => {
+                    // Vérifier si l'item est sélectionné
+                    if (selectedItem === 'all' || selectedItem === category.name + '|' + item.name) {
+                        // Ajouter les sous-items qui correspondent à la recherche
+                        item.subItems.forEach(subItem => {
+                            if (searchTerm === '' || 
+                                subItem.description.toLowerCase().includes(searchTerm) || 
+                                item.name.toLowerCase().includes(searchTerm)) {
+                                filteredItems.push({
+                                    category: category.name,
+                                    item: item.name,
+                                    subItem: subItem
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+        });
+        
+        // Afficher les résultats
+        filteredItems.forEach(filteredItem => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${filteredItem.subItem.description}</td>
+                <td>${filteredItem.subItem.unit}</td>
+                <td>${formatCurrency(filteredItem.subItem.cost)}</td>
+                <td>
+                    <button class="btn-small btn-select" data-cost="${filteredItem.subItem.cost}" data-description="${filteredItem.item}: ${filteredItem.subItem.description}">
+                        Sélectionner
+                    </button>
+                </td>
+            `;
+            
+            resultsContainer.appendChild(row);
+        });
+        
+        // Ajouter les événements pour sélectionner un coût
+        resultsContainer.querySelectorAll('.btn-select').forEach(button => {
+            button.addEventListener('click', function() {
+                const cost = parseFloat(this.getAttribute('data-cost'));
+                const description = this.getAttribute('data-description');
+                const taskIndex = document.getElementById('cost-catalog-modal').getAttribute('data-task-index');
+                
+                // Mettre à jour le champ de coût et de description
+                document.getElementById(`task-cost-${taskIndex}`).value = cost;
+                document.getElementById(`task-name-${taskIndex}`).value = description;
+                
+                // Fermer la modale
+                document.getElementById('cost-catalog-modal').style.display = 'none';
+            });
         });
     }
     
@@ -976,10 +1396,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Fonction pour afficher une notification
-    function showNotification(message) {
+    function showNotification(message, type = 'success') {
         // Créer l'élément de notification
         const notification = document.createElement('div');
-        notification.className = 'notification';
+        notification.className = `notification ${type}`;
         notification.textContent = message;
         
         // Ajouter la notification au corps du document
@@ -999,9 +1419,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
     
-    // Ajouter du CSS pour les notifications
-    const notificationStyles = document.createElement('style');
-    notificationStyles.textContent = `
+    // Ajouter du CSS pour les notifications et les nouvelles fonctionnalités
+    const additionalStyles = document.createElement('style');
+    additionalStyles.textContent = `
         .notification {
             position: fixed;
             bottom: 20px;
@@ -1022,6 +1442,10 @@ document.addEventListener('DOMContentLoaded', function() {
             transform: translateY(0);
         }
         
+        .notification.error {
+            background-color: #e74c3c;
+        }
+        
         .positive {
             color: #2ecc71;
         }
@@ -1029,13 +1453,139 @@ document.addEventListener('DOMContentLoaded', function() {
         .negative {
             color: #e74c3c;
         }
+        
+        /* Styles pour l'onglet de coûts de rénovation */
+        .costs-container {
+            margin-top: 20px;
+        }
+        
+        .costs-category {
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .costs-category-header {
+            background-color: #f5f5f5;
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .costs-category-header:hover {
+            background-color: #e8e8e8;
+        }
+        
+        .costs-category-content {
+            padding: 0 15px;
+            display: none;
+        }
+        
+        .costs-item {
+            margin: 15px 0;
+        }
+        
+        .costs-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .costs-table th, .costs-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .costs-table th {
+            background-color: #f5f5f5;
+            font-weight: 500;
+        }
+        
+        .costs-contingency {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+        
+        .disclaimer {
+            color: #e74c3c;
+            font-style: italic;
+        }
+        
+        .last-updated {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        
+        /* Styles pour la modale de catalogue des coûts */
+        .catalog-results {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .catalog-results table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .catalog-results th, .catalog-results td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .catalog-results th {
+            background-color: #f5f5f5;
+            position: sticky;
+            top: 0;
+        }
+        
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .filters .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 0.8em;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        .btn-small:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn-select-cost {
+            margin-top: 22px;
+        }
     `;
-    document.head.appendChild(notificationStyles);
+    document.head.appendChild(additionalStyles);
     
     // ------------------- INITIALISATION ------------------- //
     
     // Initialiser l'application
     function initApp() {
+        // Ajouter l'onglet des coûts de rénovation
+        addMaterialCostsTab();
+        
         // Simuler le chargement d'un projet (dans une version réelle, cela proviendrait d'une base de données)
         currentProject = loadProject('default');
         
