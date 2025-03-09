@@ -13,11 +13,139 @@
         
         <div class="calculator-container">
             <form id="abd-atd-form">
-                <!-- Formulaire à compléter -->
+                <div class="form-group">
+                    <label for="revenu-annuel">Revenu annuel brut ($)</label>
+                    <input type="number" id="revenu-annuel" name="revenu-annuel" min="0" step="1000" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="revenu-conjoint">Revenu annuel brut du conjoint ($)</label>
+                    <input type="number" id="revenu-conjoint" name="revenu-conjoint" min="0" step="1000">
+                </div>
+                
+                <div class="form-group">
+                    <label for="allocations-familiales">Allocations familiales ($)</label>
+                    <input type="number" id="allocations-familiales" name="allocations-familiales" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="pension-alimentaire">Pension alimentaire ($)</label>
+                    <input type="number" id="pension-alimentaire" name="pension-alimentaire" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="autres-revenus">Autres revenus ($)</label>
+                    <input type="number" id="autres-revenus" name="autres-revenus" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="taxes-municipales">Taxes municipales ($)</label>
+                    <input type="number" id="taxes-municipales" name="taxes-municipales" min="0" step="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="taxes-scolaires">Taxes scolaires ($)</label>
+                    <input type="number" id="taxes-scolaires" name="taxes-scolaires" min="0" step="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="condo-fees">Frais de copropriété ($)</label>
+                    <input type="number" id="condo-fees" name="condo-fees" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="chauffage">Chauffage ($)</label>
+                    <input type="number" id="chauffage" name="chauffage" min="0" step="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paiement-hypothecaire">Paiement hypothécaire ($)</label>
+                    <input type="number" id="paiement-hypothecaire" name="paiement-hypothecaire" min="0" step="100" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="credit-auto">Paiement crédit auto ($)</label>
+                    <input type="number" id="credit-auto" name="credit-auto" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="credit-marge">Paiement marge de crédit ($)</label>
+                    <input type="number" id="credit-marge" name="credit-marge" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="credit-perso">Paiement crédit personnel ($)</label>
+                    <input type="number" id="credit-perso" name="credit-perso" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="carte-credit">Paiement cartes de crédit ($)</label>
+                    <input type="number" id="carte-credit" name="carte-credit" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="credit-etudiant">Paiement prêt étudiant ($)</label>
+                    <input type="number" id="credit-etudiant" name="credit-etudiant" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="pension-alimentaire-paiement">Pension alimentaire à payer ($)</label>
+                    <input type="number" id="pension-alimentaire-paiement" name="pension-alimentaire-paiement" min="0" step="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="autres-dettes">Autres dettes ($)</label>
+                    <input type="number" id="autres-dettes" name="autres-dettes" min="0" step="100">
+                </div>
+                
+                <div class="form-group full-width">
+                    <button type="submit" id="calculate-btn">Calculer ABD/ATD</button>
+                </div>
             </form>
             
-            <div id="results" class="results-container">
-                <!-- Résultats à afficher -->
+            <div id="results" class="results-container" style="display: none;">
+                <h2>Résultats</h2>
+                
+                <div class="result-section">
+                    <h3>Revenus</h3>
+                    <div id="total-revenus" class="result-item">
+                        <span class="result-label">Total des revenus :</span>
+                        <span class="result-value">$0</span>
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Dépenses liées à l'habitation</h3>
+                    <div id="total-habitation" class="result-item">
+                        <span class="result-label">Total des dépenses d'habitation :</span>
+                        <span class="result-value">$0</span>
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Autres dettes</h3>
+                    <div id="total-autres-dettes" class="result-item">
+                        <span class="result-label">Total des autres dettes :</span>
+                        <span class="result-value">$0</span>
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Ratios calculés</h3>
+                    <div id="abd-ratio" class="result-item result-principal">
+                        <span class="result-label">ABD (Amortissement Brut de la Dette) :</span>
+                        <span class="result-value">0%</span>
+                    </div>
+                    <div id="atd-ratio" class="result-item result-principal">
+                        <span class="result-label">ATD (Amortissement Total de la Dette) :</span>
+                        <span class="result-value">0%</span>
+                    </div>
+                </div>
+                
+                <div class="result-section">
+                    <h3>Résultat de la qualification</h3>
+                    <div id="qualification" class="result-item"></div>
+                </div>
             </div>
         </div>
     </div>
