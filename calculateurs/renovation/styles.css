@@ -51,6 +51,7 @@ h3 {
     display: flex;
     border-bottom: 1px solid #ddd;
     margin-bottom: 2rem;
+    flex-wrap: wrap;
 }
 
 .tab-button {
@@ -64,6 +65,7 @@ h3 {
     transition: all 0.3s ease;
     border: 1px solid transparent;
     margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 .tab-button:hover {
@@ -510,6 +512,118 @@ tr:hover {
     text-decoration: underline;
 }
 
+/* Styles pour le catalogue de prix */
+.search-filter {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-input {
+    padding: 0.75rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    width: 100%;
+}
+
+.filter-select {
+    min-width: 200px;
+}
+
+.catalog-table-container {
+    max-height: 600px;
+    overflow-y: auto;
+    margin-bottom: 2rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.catalog-table th:first-child,
+.catalog-table td:first-child {
+    text-align: center;
+    width: 40px;
+}
+
+.catalog-table th:last-child,
+.catalog-table td:last-child {
+    text-align: right;
+    font-weight: bold;
+}
+
+.catalog-table input[type="number"] {
+    width: 100%;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+.catalog-table tr.category-header {
+    background-color: #d6eaf8;
+    font-weight: bold;
+}
+
+.catalog-table tr.subcategory {
+    background-color: #edf7fd;
+}
+
+.catalog-table tr.selected {
+    background-color: #ebf5fb;
+}
+
+.estimate-summary {
+    background-color: #f9f9f9;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-top: 2rem;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 1.1rem;
+}
+
+.contingency-row div {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.contingency-row input {
+    width: 60px;
+    padding: 0.25rem;
+    text-align: center;
+}
+
+.total-row {
+    font-weight: bold;
+    font-size: 1.25rem;
+    padding-top: 1rem;
+    border-bottom: none;
+}
+
+.no-data {
+    padding: 1rem;
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.category-exterior {
+    border-left: 4px solid #3498db;
+}
+
+.category-interior {
+    border-left: 4px solid #27ae60;
+}
+
+.category-misc {
+    border-left: 4px solid #f39c12;
+}
+
 /* Responsivité */
 @media (max-width: 992px) {
     .container {
@@ -527,6 +641,10 @@ tr:hover {
     
     .dashboard {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+    
+    .search-filter {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -558,6 +676,10 @@ tr:hover {
     .stats-value {
         font-size: 1.2rem;
     }
+    
+    .catalog-table-container {
+        max-height: 400px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -581,5 +703,14 @@ tr:hover {
     
     .room-actions {
         margin-top: 0.5rem;
+    }
+    
+    .summary-row {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .contingency-row div {
+        justify-content: flex-start;
     }
 }
