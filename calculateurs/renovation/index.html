@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calculateur d'Estimation et Suivi des Rénovations - ImmoInvestPro</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -13,11 +14,21 @@
         
         <div class="calculator-container">
             <div class="tabs">
-                <button class="tab-button active" data-tab="project-info">Informations Projet</button>
-                <button class="tab-button" data-tab="price-catalog">Catalogue de Prix</button>
-                <button class="tab-button" data-tab="room-list">Liste des Pièces</button>
-                <button class="tab-button" data-tab="budget-tracking">Suivi Budgétaire</button>
-                <button class="tab-button" data-tab="summary">Synthèse</button>
+                <button class="tab-button active" data-tab="project-info">
+                    <i class="fas fa-info-circle"></i> Informations Projet
+                </button>
+                <button class="tab-button" data-tab="material-costs">
+                    <i class="fas fa-money-bill-wave"></i> Coûts des matériaux
+                </button>
+                <button class="tab-button" data-tab="room-list">
+                    <i class="fas fa-list"></i> Liste des Pièces
+                </button>
+                <button class="tab-button" data-tab="budget-tracking">
+                    <i class="fas fa-chart-line"></i> Suivi Budgétaire
+                </button>
+                <button class="tab-button" data-tab="summary">
+                    <i class="fas fa-file-alt"></i> Synthèse
+                </button>
             </div>
             
             <div class="tab-content">
@@ -72,69 +83,17 @@
                     </form>
                 </div>
 
-                <!-- Onglet Catalogue de Prix -->
-                <div id="price-catalog" class="tab-pane">
-                    <h2>Catalogue de Prix des Rénovations</h2>
-                    <p class="description">Ce catalogue de prix est fourni à titre indicatif. Les prix peuvent varier selon la région, la période de l'année et la complexité des travaux.</p>
-                    
-                    <div class="search-filter">
-                        <div class="form-group">
-                            <input type="text" id="catalog-search" placeholder="Rechercher un élément..." class="search-input">
-                        </div>
-                        
-                        <div class="form-group">
-                            <select id="catalog-category" class="filter-select">
-                                <option value="all">Toutes les catégories</option>
-                                <option value="exterior">Extérieur</option>
-                                <option value="interior">Intérieur</option>
-                                <option value="misc">Divers</option>
-                            </select>
-                        </div>
+                <!-- Onglet Coûts des matériaux -->
+                <div id="material-costs" class="tab-pane">
+                    <div class="section-header">
+                        <h2>Coûts des matériaux et travaux</h2>
+                        <p id="costs-last-updated" class="last-updated">Chargement des données...</p>
                     </div>
-                    
-                    <div class="action-buttons">
-                        <button id="add-to-estimate-btn" class="primary-button">Ajouter les éléments sélectionnés au devis</button>
-                        <button id="export-catalog-btn" class="secondary-button">Exporter le catalogue (CSV)</button>
+                    <div class="costs-info">
+                        <p id="costs-disclaimer" class="disclaimer">Chargement des données...</p>
                     </div>
-
-                    <div class="table-container catalog-table-container">
-                        <table id="catalog-table" class="catalog-table">
-                            <thead>
-                                <tr>
-                                    <th width="40px"><input type="checkbox" id="select-all"></th>
-                                    <th>Catégorie</th>
-                                    <th>Travail</th>
-                                    <th>Type</th>
-                                    <th>Évaluation</th>
-                                    <th>Prix unitaire</th>
-                                    <th>Unité</th>
-                                    <th width="100px">Quantité</th>
-                                    <th width="140px">Montant estimé</th>
-                                </tr>
-                            </thead>
-                            <tbody id="catalog-items">
-                                <!-- Les items du catalogue seront ajoutés dynamiquement ici -->
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="estimate-summary">
-                        <h3>Récapitulatif de l'estimation</h3>
-                        <div class="summary-row">
-                            <span>Sous-total:</span>
-                            <span id="catalog-subtotal">0,00 $</span>
-                        </div>
-                        <div class="summary-row contingency-row">
-                            <span>Contingence:</span>
-                            <div>
-                                <input type="number" id="contingency-percentage" min="0" max="100" value="15" step="1"> %
-                                <span id="contingency-amount">0,00 $</span>
-                            </div>
-                        </div>
-                        <div class="summary-row total-row">
-                            <span>Total:</span>
-                            <span id="catalog-total">0,00 $</span>
-                        </div>
+                    <div id="renovation-costs-container" class="costs-container">
+                        <p class="loading">Chargement des coûts de rénovation...</p>
                     </div>
                 </div>
                 
@@ -379,6 +338,54 @@
                         <button type="submit" class="primary-button">Ajouter</button>
                     </div>
                 </form>
+            </div>
+        </div>
+        
+        <!-- Modale pour le catalogue de coûts -->
+        <div id="cost-catalog-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>Catalogue des coûts de rénovation</h2>
+                <div class="modal-body">
+                    <div class="filters">
+                        <div class="form-group">
+                            <label for="category-filter">Catégorie</label>
+                            <select id="category-filter">
+                                <option value="all">Toutes les catégories</option>
+                                <!-- Options remplies dynamiquement -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="item-filter">Élément</label>
+                            <select id="item-filter">
+                                <option value="all">Tous les éléments</option>
+                                <!-- Options remplies dynamiquement -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="search-filter">Recherche</label>
+                            <input type="text" id="search-filter" placeholder="Rechercher...">
+                        </div>
+                    </div>
+                    <div id="cost-catalog-results" class="catalog-results">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Unité</th>
+                                    <th>Coût</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Les résultats seront ajoutés ici -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="close-catalog-btn" class="btn">Fermer</button>
+                </div>
             </div>
         </div>
     </div>
